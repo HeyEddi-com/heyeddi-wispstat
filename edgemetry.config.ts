@@ -1,5 +1,5 @@
 /**
- * Central configuration module
+ * HeyEddi Wispstat - Central configuration module
  * THE ONLY config module - all defaults and env parsing in one place
  */
 

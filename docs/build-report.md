@@ -1,4 +1,4 @@
-# HeyEddi Edgemetry Build Report
+# HeyEddi Wispstat Build Report
 
 **Date:** 2026-10-05  
 **Scope:** Weeks 0-2 MVP from v0.2 spec  
@@ -10,9 +10,10 @@
 
 **Centralized Branding** (`branding.config.ts`):
 - All product naming in one file for easy rename
-- Placeholder: "EdgeMetrics" (awaiting final name decision)
-- Script global: `edgemetrics`
-- File naming, API key prefixes, etc. all centralized
+- **Product name: HeyEddi Wispstat** (finalized 2026-10-05)
+- Script global: `wispstat`
+- Script filename: `ws.js`
+- File naming, API key prefixes (wsk_/wss_), etc. all centralized
 
 **Core Configuration** (`edgemetry.config.ts`):
 - Single source of truth for all defaults
@@ -662,5 +663,5 @@ npm run test:watch
 
 **Test Ready:** Partially. Unit tests pass. Needs integration and privacy tests.
 
-**Rename Ready:** Yes. Change `branding.config.ts` and run find/replace.
+**Rename Ready:** Yes. Changed to **HeyEddi Wispstat** (2026-10-05). All references updated via `branding.config.ts`.
 

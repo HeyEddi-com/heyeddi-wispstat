@@ -1,5 +1,7 @@
 # HeyEddi Edgemetry — Technical Spec (v0.2 draft)
 
+> **PRODUCT RENAMED:** This spec was written for "Edgemetry" but the product has been renamed to **HeyEddi Wispstat**. When reading this spec, mentally substitute "Wispstat" for "Edgemetry" and adjust naming accordingly (e.g., `em.js` → `ws.js`, `edgemetrics` → `wispstat`, etc.). The technical requirements remain unchanged.
+
 Owner: Eddi Sanchez · Date: 2026-10-04 · Status: draft for build · License of the project: **MIT**
 Inspired by (MIT) [hayaran/Edgemetry](https://github.com/hayaran/Edgemetry). From-scratch implementation; no upstream code copied (credit in README; see Q-N3 on naming).
 

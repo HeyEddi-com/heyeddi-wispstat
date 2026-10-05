@@ -7,7 +7,7 @@ import { execSync } from 'child_process';
 import { randomBytes } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
 
-console.log('🚀 EdgeMetrics Setup\n');
+console.log('🚀 HeyEddi Wispstat Setup\n');
 
 function exec(cmd, options = {}) {
   console.log(`> ${cmd}`);
@@ -40,8 +40,8 @@ try {
 }
 
 console.log('\n📦 Creating D1 databases...');
-exec('wrangler d1 create edgemetrics-core || true');
-exec('wrangler d1 create edgemetrics-ingest || true');
+exec('wrangler d1 create wispstat-core || true');
+exec('wrangler d1 create wispstat-ingest || true');
 
 console.log('\n📦 Creating KV namespace...');
 exec('wrangler kv:namespace create SALTS || true');
@@ -63,8 +63,8 @@ writeFileSync('.dev.vars', devVars);
 console.log('✅ Secrets written to .dev.vars for local development');
 
 console.log('\n📝 Running migrations...');
-exec('wrangler d1 migrations apply edgemetrics-core --remote');
-exec('wrangler d1 migrations apply edgemetrics-ingest --remote');
+exec('wrangler d1 migrations apply wispstat-core --remote');
+exec('wrangler d1 migrations apply wispstat-ingest --remote');
 
 console.log('\n🏗️  Building...');
 exec('npm run build');

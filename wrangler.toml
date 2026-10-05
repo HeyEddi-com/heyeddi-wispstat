@@ -1,5 +1,5 @@
-# Workspace name - will be renamed
-name = "edgemetrics"
+# Workspace name
+name = "heyeddi-wispstat"
 main = "src/index.ts"
 compatibility_date = "2024-10-01"
 compatibility_flags = ["nodejs_compat"]
@@ -7,13 +7,13 @@ compatibility_flags = ["nodejs_compat"]
 # Bindings (IDs omitted for auto-provisioning; filled by Deploy button or setup script)
 [[d1_databases]]
 binding = "CORE"
-database_name = "edgemetrics-core"
+database_name = "wispstat-core"
 migrations_dir = "migrations/core"
 # database_id = "" # Uncomment and fill during setup
 
 [[d1_databases]]
 binding = "INGEST"
-database_name = "edgemetrics-ingest"
+database_name = "wispstat-ingest"
 migrations_dir = "migrations/ingest"
 # database_id = "" # Uncomment and fill during setup
 
@@ -23,7 +23,7 @@ binding = "SALTS"
 
 [[r2_buckets]]
 binding = "BACKUPS"
-bucket_name = "edgemetrics-backups"
+bucket_name = "wispstat-backups"
 # Uncomment during setup if using R2 backups
 
 # Rate limiting (placeholder - actual binding configured via dashboard/CLI)

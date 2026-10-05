@@ -12,55 +12,55 @@ export const BRANDING = {
    * Product name (user-facing)
    * Used in: dashboard UI, README, docs, error messages
    */
-  PRODUCT_NAME: 'EdgeMetrics',
+  PRODUCT_NAME: 'HeyEddi Wispstat',
   
   /**
    * Package name (technical, lowercase, no spaces)
    * Used in: package.json, npm scripts, CLI commands
    */
-  PACKAGE_NAME: 'edgemetrics',
+  PACKAGE_NAME: 'heyeddi-wispstat',
   
   /**
    * Tracker script global variable name
    * Used in: tracker script, documentation examples
-   * Example: window.edgemetrics('pageview')
+   * Example: window.wispstat('pageview')
    */
-  TRACKER_GLOBAL: 'edgemetrics',
+  TRACKER_GLOBAL: 'wispstat',
   
   /**
    * Tracker script filename (without extension)
    * Used in: build output, documentation snippets
-   * Example: em.js
+   * Example: ws.js
    */
-  TRACKER_FILENAME: 'em',
+  TRACKER_FILENAME: 'ws',
   
   /**
    * API key prefixes
    */
   KEY_PREFIXES: {
-    READ: 'emk',      // EdgeMetrics Key (read)
-    SERVER: 'ems',    // EdgeMetrics Server (write)
+    READ: 'wsk',      // Wispstat Key (read)
+    SERVER: 'wss',    // Wispstat Server (write)
   },
   
   /**
    * Cookie/storage prefixes (local auth only)
    */
-  COOKIE_PREFIX: '__Host-em_',
+  COOKIE_PREFIX: '__Host-ws_',
   
   /**
    * Database/binding name stems
    */
   DB_NAMES: {
-    CORE: 'edgemetrics-core',
-    INGEST: 'edgemetrics-ingest',
+    CORE: 'wispstat-core',
+    INGEST: 'wispstat-ingest',
   },
   
   /**
    * KV/R2 namespace names
    */
   NAMESPACE_NAMES: {
-    SALTS: 'edgemetrics-salts',
-    BACKUPS: 'edgemetrics-backups',
+    SALTS: 'wispstat-salts',
+    BACKUPS: 'wispstat-backups',
   },
 } as const;
 

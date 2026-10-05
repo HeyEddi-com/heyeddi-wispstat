@@ -1,10 +1,10 @@
 {
-  "name": "edgemetrics",
+  "name": "heyeddi-wispstat",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "MIT",
-  "description": "Privacy-first, cookie-free web analytics running on Cloudflare Workers + D1 + KV",
+  "description": "HeyEddi Wispstat - Privacy-first, cookie-free web analytics running on Cloudflare Workers + D1 + KV",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler d1 migrations apply CORE --remote && wrangler d1 migrations apply INGEST --remote && wrangler deploy",

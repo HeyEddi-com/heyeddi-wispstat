@@ -1,5 +1,5 @@
 /**
- * Privacy-first analytics tracker
+ * HeyEddi Wispstat - Privacy-first analytics tracker
  * 
  * Cookie-free, ≤2KB gzipped, no dependencies
  * Branding: Uses centralized config for naming
@@ -8,7 +8,7 @@
 (function() {
   'use strict';
   
-  const GLOBAL_NAME = 'edgemetrics'; // Will be replaced by build from branding.config
+  const GLOBAL_NAME = 'wispstat'; // From branding.config
   
   // Config from script attributes
   const script = document.currentScript as HTMLScriptElement;

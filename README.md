@@ -1,6 +1,4 @@
-# EdgeMetrics
-
-> **Note:** The product name "Edgemetry" is already taken. This project uses "EdgeMetrics" as a placeholder and is designed for easy renaming. All branding is centralized in `branding.config.ts`.
+# HeyEddi Wispstat
 
 Privacy-first, cookie-free web analytics running entirely on Cloudflare (Workers + D1 + KV). Open source (MIT), self-hosted, no tracking across sites, no selling data.
 
@@ -21,7 +19,7 @@ Privacy-first, cookie-free web analytics running entirely on Cloudflare (Workers
 
 1. Click the Deploy button:
    ```
-   https://deploy.workers.cloudflare.com/?url=https://github.com/YOUR-ORG/edgemetrics
+   https://deploy.workers.cloudflare.com/?url=https://github.com/YOUR-ORG/heyeddi-wispstat
    ```
 
 2. Cloudflare will:
@@ -42,7 +40,7 @@ Requirements: Node.js 18+, a Cloudflare account
 ```bash
 # Clone and install
 git clone <repo-url>
-cd edgemetrics
+cd heyeddi-wispstat
 npm install
 
 # Run setup script (interactive)
@@ -59,7 +57,7 @@ npm run setup
 
 ### First-Run Claim
 
-1. Visit your Worker URL (e.g., `https://edgemetrics.your-account.workers.dev`)
+1. Visit your Worker URL (e.g., `https://wispstat.your-account.workers.dev`)
 2. Enter the `SETUP_TOKEN` printed by the setup script
 3. Create your owner email + password (≥12 chars)
 4. Add your first site
@@ -69,7 +67,7 @@ npm run setup
 After adding a site, you'll get a snippet like:
 
 ```html
-<script defer src="https://your-instance.workers.dev/em.js" data-site="s_k7q2m9x4t8p3w6ab"></script>
+<script defer src="https://your-instance.workers.dev/ws.js" data-site="s_k7q2m9x4t8p3w6ab"></script>
 ```
 
 The `data-site` is a randomly generated public site ID. Place it in your `<head>` or before `</body>`.
@@ -104,7 +102,7 @@ Optional (for features):
 ```html
 <!-- Attributes -->
 <script defer 
-  src="https://your-instance/em.js"
+  src="https://your-instance/ws.js"
   data-site="s_..."
   data-api="https://your-instance/e"
   data-spa="auto"
@@ -117,18 +115,18 @@ Optional (for features):
 
 ```js
 // Queue stub (for early calls)
-window.edgemetrics = window.edgemetrics || function() {
-  (edgemetrics.q = edgemetrics.q || []).push(arguments);
+window.wispstat = window.wispstat || function() {
+  (wispstat.q = wispstat.q || []).push(arguments);
 };
 
 // Track pageview (auto by default)
-edgemetrics('pageview');
+wispstat('pageview');
 
 // Track custom event
-edgemetrics('event', 'signup');
+wispstat('event', 'signup');
 
 // Event with value (site currency)
-edgemetrics('event', 'purchase', { value: 49.90 });
+wispstat('event', 'purchase', { value: 49.90 });
 ```
 
 ## Privacy Model
@@ -180,14 +178,14 @@ edgemetrics('event', 'purchase', { value: 49.90 });
 
 1. **Time Travel** (built-in, always on): Restore to any minute within 7 days (Free) / 30 days (Paid)
    ```bash
-   wrangler d1 time-travel restore edgemetrics-core --timestamp=<unix-seconds>
+   wrangler d1 time-travel restore wispstat-core --timestamp=<unix-seconds>
    ```
 
 2. **R2 backups** (optional, nightly): Set `CF_API_TOKEN` and `CF_ACCOUNT_ID` secrets
 
 3. **Manual export:**
    ```bash
-   wrangler d1 export edgemetrics-core --remote --output=backup.sql
+   wrangler d1 export wispstat-core --remote --output=backup.sql
    ```
 
 ## Development
@@ -225,35 +223,16 @@ npm test
 │   ├── auth/              # Authentication
 │   └── lib/               # Shared utilities
 ├── dashboard/             # Vue 3 SPA
-├── tracker/               # Tracker script (em.js)
+├── tracker/               # Tracker script (ws.js)
 ├── migrations/
 │   ├── core/              # CORE schema
 │   └── ingest/            # INGEST schema
 ├── scripts/               # Setup, smoke tests
 ├── templates/             # Privacy page template
-├── branding.config.ts     # Centralized naming (rename here)
+├── branding.config.ts     # Centralized naming
 ├── edgemetry.config.ts    # App configuration
 └── wrangler.toml          # Cloudflare config
 ```
-
-## Renaming the Product
-
-All branding is centralized in `branding.config.ts`. To rename:
-
-1. Edit `branding.config.ts`:
-   ```ts
-   export const BRANDING = {
-     PRODUCT_NAME: 'YourName',
-     PACKAGE_NAME: 'yourname',
-     TRACKER_GLOBAL: 'yourname',
-     TRACKER_FILENAME: 'yn',
-     // ...
-   };
-   ```
-
-2. Update `package.json` name field
-3. Update this README
-4. Find/replace any remaining hardcoded references (there shouldn't be many)
 
 ## Roadmap
 
@@ -289,5 +268,5 @@ Inspired by hayaran/Edgemetry (MIT), though this is a from-scratch implementatio
 
 ## Credits
 
-- Spec & implementation: Eddi Sanchez
+- Spec & implementation: Eddi Sanchez (HeyEddi)
 - Inspired by: hayaran/Edgemetry (MIT)

@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <header v-if="claimed">
-      <h1>EdgeMetrics</h1>
+      <h1>HeyEddi Wispstat</h1>
       <nav>
         <router-link to="/">Overview</router-link>
       </nav>

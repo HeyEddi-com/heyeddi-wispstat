@@ -8,8 +8,8 @@ export default defineConfig({
     emptyOutDir: false,
     lib: {
       entry: resolve(__dirname, 'em.ts'),
-      name: 'edgemetrics',
-      fileName: 'em',
+      name: 'wispstat',
+      fileName: 'ws',
       formats: ['iife'],
     },
     rollupOptions: {
