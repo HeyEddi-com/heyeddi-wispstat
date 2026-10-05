@@ -19,6 +19,7 @@
   const autoMode = script.getAttribute('data-auto') !== 'false';
   const respectDnt = script.hasAttribute('data-respect-dnt');
   const exclude = (script.getAttribute('data-exclude') || '').split(',').filter(Boolean);
+  const masks = (script.getAttribute('data-mask') || '').split(',').map((s) => s.trim()).filter(Boolean);
   
   // Skip if invalid config
   if (!siteId || !apiUrl) return;
@@ -40,16 +41,31 @@
   }
   
   let lastPath = '';
+  let sentReferrer = false;
+
+  function maskPath(path: string): string {
+    for (const pattern of masks) {
+      const star = pattern.indexOf('*');
+      const prefix = star === -1 ? pattern : pattern.slice(0, star);
+      if (star === -1) {
+        if (path === prefix) return prefix;
+      } else if (path.startsWith(prefix)) {
+        return prefix.replace(/\/$/, '') + '/:x';
+      }
+    }
+    return path;
+  }
   
   function track(kind: 'pv' | 'ev', name?: string, opts?: { value?: number }) {
     try {
-      const path = location.pathname + (hashMode ? location.hash : '');
+      const path = maskPath(location.pathname + (hashMode ? location.hash : ''));
       
       // Check exclusions
       if (exclude.some(p => path.startsWith(p))) return;
       
       // Dedupe
       if (kind === 'pv' && path === lastPath) return;
+      const firstPageview = kind === 'pv' && !sentReferrer;
       if (kind === 'pv') lastPath = path;
       
       const payload: any = {
@@ -70,14 +86,19 @@
         }
       }
       
-      // Referrer (only on first pageview of session)
-      if (kind === 'pv' && !lastPath && document.referrer) {
+      // Referrer only on the first pageview of this page load
+      if (firstPageview && document.referrer) {
+        sentReferrer = true;
         try {
           const refUrl = new URL(document.referrer);
           if (refUrl.hostname !== location.hostname) {
             payload.r = document.referrer;
           }
-        } catch {}
+        } catch {
+          // Ignore unparseable referrers
+        }
+      } else if (firstPageview) {
+        sentReferrer = true;
       }
       
       // Language (base only)
@@ -101,7 +122,7 @@
       
       send(payload);
       
-    } catch (err) {
+    } catch {
       // Swallow errors
     }
   }

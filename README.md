@@ -241,10 +241,10 @@ npm test
 - [x] Tracker script (cookie-free, SPA support, language, value, DNT/GPC)
 - [x] Collector endpoint with validation, bot filtering, visitor hashing, attribution
 - [x] SETUP_TOKEN claim flow and local auth
-- [ ] Rollup jobs (cron: hourly, nightly, weekly)
-- [ ] Read API endpoints
-- [ ] Dashboard (claim, overview, sources, goals, export)
-- [ ] Unit tests and smoke tests
+- [x] Rollup jobs (cron: hourly, nightly, weekly)
+- [x] Read API endpoints
+- [x] Dashboard (claim, overview, sources, goals, export)
+- [x] Unit tests and smoke tests
 
 **Weeks 3+ (post-MVP):**
 - v1.1: Sessions (cookieless, approximate), `/a` attribution endpoint

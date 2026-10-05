@@ -8,6 +8,7 @@ export interface Env {
   INGEST: D1Database;
   SALTS: KVNamespace;
   BACKUPS?: R2Bucket;
+  ASSETS?: Fetcher;
   
   // Secrets
   SETUP_TOKEN: string;
@@ -23,6 +24,7 @@ export interface Env {
   SLACK_WEBHOOK_URL?: string;
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
+  D1_CORE_DATABASE_ID?: string;
 }
 
 export interface Site {

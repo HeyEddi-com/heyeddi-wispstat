@@ -7,6 +7,8 @@ import type { Env } from './lib/types';
 import { handleCollector } from './collector';
 import { handleClaim, handleLogin, handleLogout } from './auth/local';
 import { getConfig } from '../wispstat.config';
+import { registerApi } from './api/routes';
+import { runScheduled } from './cron';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -52,17 +54,21 @@ app.get('/config', async (c) => {
   });
 });
 
-// API routes (to be implemented)
-app.get('/api/v1/*', async (c) => {
-  return c.json({ error: { code: 'not_implemented', message: 'API not yet implemented' } }, 501);
+registerApi(app);
+
+app.all('*', async (c) => {
+  if (!c.env.ASSETS) {
+    return c.json({ error: { code: 'not_found', message: 'Not found' } }, 404);
+  }
+  return c.env.ASSETS.fetch(c.req.raw);
 });
 
-// Cron handler
+export { app };
+
 export default {
   fetch: app.fetch,
-  
-  async scheduled(event: ScheduledEvent, _env: Env, _ctx: ExecutionContext) {
-    // Cron logic to be implemented
-    console.log('Cron triggered:', event.cron);
+
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runScheduled(event.cron, env));
   },
 };

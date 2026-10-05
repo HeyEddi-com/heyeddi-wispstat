@@ -19,6 +19,7 @@ import {
 import { getSalt } from '../lib/salt';
 import { computeVisitorHash, parseUserAgent, isBot } from '../lib/visitor';
 import { computeChannel } from '../lib/channels';
+import { ensurePartition } from '../lib/partitions';
 
 // Isolate caches
 const siteCache = new Map<string, { site: Site; expires: number }>();
@@ -189,14 +190,21 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
       ]);
       
     } catch (error) {
-      // Log error but don't fail the response
-      console.error('D1 write error:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('D1 write error:', message);
+      if (/quota|limit exceeded|too many/i.test(message)) {
+        const until = String(Math.floor(Date.now() / 1000) + 60);
+        await env.CORE.prepare(
+          `INSERT INTO rollup_state (job, scope, value) VALUES ('shed', 'collector', ?)
+           ON CONFLICT(job, scope) DO UPDATE SET value = excluded.value`
+        ).bind(until).run();
+      }
     }
   })();
   
   // @ts-expect-error - waitUntil exists in Workers context
   if (typeof waitUntil === 'function') {
-    // @ts-expect-error
+    // @ts-expect-error waitUntil is a Workers global, not in the DOM lib
     waitUntil(writePromise);
   } else {
     // In tests, await it
@@ -300,52 +308,6 @@ async function getGoalsCached(env: Env, sid: number): Promise<Goal[]> {
 function matchesGoal(value: string, goal: Goal): boolean {
   if (goal.match_type === 'exact') {
     return value === goal.pattern;
-  } else {
-    return value.startsWith(goal.pattern);
   }
-}
-
-async function ensurePartition(db: D1Database, suffix: string): Promise<void> {
-  try {
-    await db.batch([
-      db.prepare(`
-        CREATE TABLE IF NOT EXISTS ev_${suffix} (
-          id INTEGER PRIMARY KEY,
-          sid INTEGER NOT NULL,
-          ts INTEGER NOT NULL,
-          k INTEGER NOT NULL,
-          name TEXT,
-          path TEXT NOT NULL,
-          vh BLOB NOT NULL,
-          nv INTEGER NOT NULL DEFAULT 0,
-          goal_id INTEGER,
-          value_x100 INTEGER,
-          src INTEGER NOT NULL DEFAULT 0
-        )
-      `),
-      db.prepare(`
-        CREATE TABLE IF NOT EXISTS vis_${suffix} (
-          sid INTEGER NOT NULL,
-          vh BLOB NOT NULL,
-          first_ts INTEGER NOT NULL,
-          channel TEXT NOT NULL,
-          source TEXT,
-          medium TEXT,
-          campaign TEXT,
-          content TEXT,
-          term TEXT,
-          ref_host TEXT,
-          entry_path TEXT,
-          country TEXT,
-          lang TEXT,
-          device TEXT,
-          browser TEXT,
-          os TEXT,
-          PRIMARY KEY (sid, vh)
-        ) WITHOUT ROWID
-      `),
-    ]);
-  } catch (error) {
-    // Table might already exist, ignore
-  }
+  return value.startsWith(goal.pattern);
 }

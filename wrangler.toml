@@ -8,18 +8,18 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "CORE"
 database_name = "wispstat-core"
+database_id = "00000000-0000-0000-0000-000000000001"
 migrations_dir = "migrations/core"
-# database_id = "" # Uncomment and fill during setup
 
 [[d1_databases]]
 binding = "INGEST"
 database_name = "wispstat-ingest"
+database_id = "00000000-0000-0000-0000-000000000002"
 migrations_dir = "migrations/ingest"
-# database_id = "" # Uncomment and fill during setup
 
 [[kv_namespaces]]
 binding = "SALTS"
-# id = "" # Uncomment and fill during setup
+id = "00000000000000000000000000000001"
 
 [[r2_buckets]]
 binding = "BACKUPS"
@@ -36,7 +36,8 @@ bucket_name = "wispstat-backups"
 directory = "./dist/assets"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/e", "/t", "/a", "/api/*"]
+# This Wrangler only accepts a boolean. The Worker passes other paths to ASSETS.
+run_worker_first = true
 
 # Cron triggers (hourly, nightly, weekly)
 [triggers]

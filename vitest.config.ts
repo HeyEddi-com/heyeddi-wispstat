@@ -4,14 +4,17 @@ export default defineWorkersConfig({
   test: {
     poolOptions: {
       workers: {
+        isolatedStorage: false,
         miniflare: {
           compatibilityDate: '2024-10-01',
           compatibilityFlags: ['nodejs_compat'],
-          // Use in-memory D1 and KV for tests
+          d1Databases: ['CORE', 'INGEST'],
+          kvNamespaces: ['SALTS'],
           bindings: {
-            CORE: { d1: true },
-            INGEST: { d1: true },
-            SALTS: { kv: true },
+            SETUP_TOKEN: 'a'.repeat(32),
+            SESSION_SECRET: 'b'.repeat(32),
+            DEFAULT_TZ: 'UTC',
+            AUTH_PROVIDERS: 'local',
           },
         },
       },

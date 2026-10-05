@@ -4,6 +4,8 @@
       <h1>HeyEddi Wispstat</h1>
       <nav>
         <router-link to="/">Overview</router-link>
+        <router-link to="/login">Sign in</router-link>
+        <button type="button" class="link" @click="logout">Sign out</button>
       </nav>
     </header>
     
@@ -14,19 +16,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { api } from './lib/api';
+import { claimed, loadConfig } from './lib/session';
 
-const claimed = ref(false);
+const router = useRouter();
 
-onMounted(async () => {
-  try {
-    const response = await fetch('/config');
-    const data = await response.json();
-    claimed.value = data.claimed;
-  } catch (error) {
-    console.error('Failed to load config:', error);
-  }
+onMounted(() => {
+  loadConfig().catch(() => undefined);
 });
+
+async function logout() {
+  await api('/auth/logout', { method: 'POST' });
+  router.push('/login');
+}
 </script>
 
 <style>
@@ -76,4 +80,60 @@ main {
   margin: 0 auto;
   padding: 2rem;
 }
+
+button.link {
+  margin-left: 1.5rem;
+  background: none;
+  border: 0;
+  color: #666;
+  cursor: pointer;
+  font: inherit;
+}
+
+.card, .claim .card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.toolbar, .subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+
+label { display: block; font-weight: 500; margin: 0.5rem 0; }
+input, select {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  padding: 0.6rem;
+  margin-top: 0.25rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font: inherit;
+}
+button {
+  padding: 0.6rem 1rem;
+  background: #2e7d32;
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #eee; }
+.error { color: #c62828; }
+.ok { color: #2e7d32; word-break: break-all; }
+.subnav a { color: #444; }
 </style>
