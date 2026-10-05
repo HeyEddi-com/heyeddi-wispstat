@@ -15,7 +15,7 @@
 - Script filename: `ws.js`
 - File naming, API key prefixes (wsk_/wss_), etc. all centralized
 
-**Core Configuration** (`edgemetry.config.ts`):
+**Core Configuration** (`wispstat.config.ts`):
 - Single source of truth for all defaults
 - Environment parsing with validation
 - Rate limits, retention periods, schedules
@@ -61,9 +61,9 @@
 
 **API**:
 ```js
-edgemetrics('pageview')
-edgemetrics('event', 'signup')
-edgemetrics('event', 'purchase', { value: 49.90 })
+wispstat('pageview')
+wispstat('event', 'signup')
+wispstat('event', 'purchase', { value: 49.90 })
 ```
 
 ### ✅ 4. Collector Endpoint (`src/collector/index.ts`)
@@ -342,7 +342,7 @@ edgemetrics('event', 'purchase', { value: 49.90 })
 
 **Privacy Tests**:
 - [ ] No Set-Cookie headers in responses
-- [ ] em.js grep for banned APIs (cookie, localStorage, screen, etc.)
+- [ ] ws.js grep for banned APIs (cookie, localStorage, screen, etc.)
 - [ ] Fuzz test: scan D1 tables for IP/UA/email patterns
 
 **Static Tests**:
@@ -399,7 +399,7 @@ edgemetrics('event', 'purchase', { value: 49.90 })
 ### ⚠️ Still Unverified (Spike Items)
 1. **INSERT...WHERE NOT EXISTS write counting**: Assumed D1 counts 0 rows written when EXISTS check fails (deterministic no-op). Needs runtime test.
 2. **PBKDF2 iterations on Free tier**: 100k iterations configured. Needs CPU timing test to verify fits in 10ms budget.
-3. **Workers static asset request billing**: Unclear if static requests (em.js, dashboard) count toward 100k/day limit. Needs monitoring.
+3. **Workers static asset request billing**: Unclear if static requests (ws.js, dashboard) count toward 100k/day limit. Needs monitoring.
 4. **`workers.dev` Cache API**: Spec says Cache API only works on custom domains. Assumed `.workers.dev` is uncached. Needs verification.
 5. **D1 window functions (LAG)**: Deferred to v1.1 (sessions). SQLite version in D1 needs verification.
 6. **Deploy button secret generation**: Assumed user must manually set SETUP_TOKEN. Auto-generation not verified.
@@ -454,14 +454,14 @@ npm run setup
 # - Print your claim URL + SETUP_TOKEN
 
 # Or step-by-step:
-wrangler d1 create edgemetrics-core
-wrangler d1 create edgemetrics-ingest
+wrangler d1 create wispstat-core
+wrangler d1 create wispstat-ingest
 wrangler kv:namespace create SALTS
 
 # Update wrangler.toml with binding IDs
 
-wrangler d1 migrations apply edgemetrics-core --remote
-wrangler d1 migrations apply edgemetrics-ingest --remote
+wrangler d1 migrations apply wispstat-core --remote
+wrangler d1 migrations apply wispstat-ingest --remote
 
 # Generate and set secrets
 wrangler secret put SETUP_TOKEN
@@ -541,7 +541,7 @@ npm run test:watch
 10. **Dashboard: settings** (domains, timezone, API keys)
 11. **API keys** (create, reveal once, revoke)
 12. **Integration tests** (claim, rollup idempotence, shed mode)
-13. **Privacy tests** (no Set-Cookie, em.js API scan, D1 PII fuzz)
+13. **Privacy tests** (no Set-Cookie, ws.js API scan, D1 PII fuzz)
 
 ### P2 - Nice to Have
 14. **Dashboard: live view** (last 30 min from raw)
@@ -565,7 +565,7 @@ npm run test:watch
 ```
 /workspace/
 ├── branding.config.ts         # RENAME HERE
-├── edgemetry.config.ts        # Central config
+├── wispstat.config.ts        # Central config
 ├── wrangler.toml              # Cloudflare config
 ├── package.json               # Root deps
 ├── tsconfig.json              # TypeScript config

@@ -3,7 +3,7 @@
  */
 
 import type { Env } from './types';
-import { CONSTANTS } from '../../edgemetry.config';
+import { CONSTANTS } from '../../wispstat.config';
 import { getLocalDate, getPartitionSuffix } from './utils';
 
 /**

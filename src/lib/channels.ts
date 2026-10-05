@@ -3,7 +3,7 @@
  */
 
 import channelsJson from '../../channels.json';
-import { CONSTANTS } from '../../edgemetry.config';
+import { CONSTANTS } from '../../wispstat.config';
 import type { BeaconPayload } from './types';
 
 interface ChannelMap {

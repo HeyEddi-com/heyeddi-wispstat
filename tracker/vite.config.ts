@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: '../dist/assets',
     emptyOutDir: false,
     lib: {
-      entry: resolve(__dirname, 'em.ts'),
+      entry: resolve(__dirname, 'ws.ts'),
       name: 'wispstat',
       fileName: 'ws',
       formats: ['iife'],

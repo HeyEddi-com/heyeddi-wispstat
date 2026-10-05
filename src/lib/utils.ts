@@ -2,7 +2,7 @@
  * Utility functions
  */
 
-import { CONSTANTS } from '../../edgemetry.config';
+import { CONSTANTS } from '../../wispstat.config';
 
 /**
  * Generate a Crockford base32 site ID

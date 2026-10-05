@@ -1,6 +1,4 @@
-# HeyEddi Edgemetry — Technical Spec (v0.2 draft)
-
-> **PRODUCT RENAMED:** This spec was written for "Edgemetry" but the product has been renamed to **HeyEddi Wispstat**. When reading this spec, mentally substitute "Wispstat" for "Edgemetry" and adjust naming accordingly (e.g., `em.js` → `ws.js`, `edgemetrics` → `wispstat`, etc.). The technical requirements remain unchanged.
+# HeyEddi Wispstat — Technical Spec (v0.2 draft)
 
 Owner: Eddi Sanchez · Date: 2026-10-04 · Status: draft for build · License of the project: **MIT**
 Inspired by (MIT) [hayaran/Edgemetry](https://github.com/hayaran/Edgemetry). From-scratch implementation; no upstream code copied (credit in README; see Q-N3 on naming).
@@ -59,7 +57,7 @@ Inspired by (MIT) [hayaran/Edgemetry](https://github.com/hayaran/Edgemetry). Fro
 | **Language (`lang`)** | **Base language only** (`es`, `en`, `pt`…): first tag of `navigator.language` (client) with fallback to first tag of `Accept-Language` (server); lowercased, truncated to base subtag, validated `^[a-z]{2,3}$`, else `''`. **Never the full language list, never region.** |
 | Timestamps | Server time only. |
 | Custom events | Name (≤64, `[a-z0-9_:.-]`) + optional numeric `value` (§5). No other properties in v1.0. |
-| **Never collected** | Screen/viewport size, client timezone/offset, installed fonts, plugins, canvas/WebGL/audio, hardware concurrency/memory, battery, connection type, full `navigator.languages`, cookies/localStorage/sessionStorage/IndexedDB (in default mode), client-side IDs, Firebase Analytics, third-party calls, raw IP/UA, emails/user IDs, query strings. Enforced by a test that greps `em.js` for these APIs (§12.7). |
+| **Never collected** | Screen/viewport size, client timezone/offset, installed fonts, plugins, canvas/WebGL/audio, hardware concurrency/memory, battery, connection type, full `navigator.languages`, cookies/localStorage/sessionStorage/IndexedDB (in default mode), client-side IDs, Firebase Analytics, third-party calls, raw IP/UA, emails/user IDs, query strings. Enforced by a test that greps `ws.js` for these APIs (§12.7). |
 
 Mitigation for combined entropy (country+device+lang+browser): rollups store **one dimension at a time** (except the source tuple), never cross-tabs; per-visitor rows live ~3 days in INGEST then are dropped.
 
@@ -95,10 +93,10 @@ Emails, names, phones, CRM/contact IDs, Firebase UIDs and payment details **neve
 ```mermaid
 flowchart LR
   subgraph Sites["Operator's static sites (anywhere)"]
-    T["em.js tracker ≤2KB<br/>(vendored per site)"]
+    T["ws.js tracker ≤2KB<br/>(vendored per site)"]
     APP["Operator's apps<br/>(Vue/Firebase/Stripe…)"]
   end
-  subgraph W["ONE Worker 'edgemetry' (+ static assets)"]
+  subgraph W["ONE Worker 'heyeddi-wispstat' (+ static assets)"]
     C["collector: POST /e, /t, /a"]
     A["api: /api/v1/* (read, admin, server events)"]
     CR["cron: hourly / nightly / weekly"]
@@ -114,7 +112,7 @@ flowchart LR
   CR -- "nightly CORE export" --> R2[("R2 backups")]
   Browser["Owner's browser"] -- "login: built-in OR Firebase" --> D
   D --> A
-  APP -- "X-EM-Key (read) / server key" --> A
+  APP -- "X-WS-Key (read) / server key" --> A
   APP -- "POST /t, /a" --> C
   A -- "verify Firebase JWT (cached keys)" --> GK["Google public keys"]
   A --> CORE
@@ -137,7 +135,7 @@ Conventions: `sid` = internal integer; **`site_id` = public random ID**; `day` =
 ### 4.0 Site IDs
 - `site_id` = `s_` + 16 chars Crockford base32 from `crypto.getRandomValues` ✅ (80 bits), generated at site creation; shown in the "Add site" snippet; **this** is `data-site`. It is an *identifier, not a secret* (it sits in public HTML): it prevents enumeration/blind spam of other sites, but ingest protection still relies on origin check + rate limits (§11).
 - `slug` (optional, `^[a-z0-9-]{2,40}$`, unique) and `name` are for humans: dashboard URLs, digest titles, API path convenience (`/sites/{site_id|slug}`; slug resolved only within the caller's authorized sites). **The collector, `/t`, `/a` and keys accept `site_id` only.**
-- API keys embed the site ID: `emk_<site_id>_<secret>` (read) / `ems_<site_id>_<secret>` (server, §14.2); a key is rejected if its embedded `site_id` ≠ the key row's site.
+- API keys embed the site ID: `wsk_<site_id>_<secret>` (read) / `wss_<site_id>_<secret>` (server, §14.2); a key is rejected if its embedded `site_id` ≠ the key row's site.
 
 ### 4.1 CORE (config + rollups; kept forever unless noted)
 ```sql
@@ -241,7 +239,7 @@ CREATE TABLE vis_20261004 (                 -- one row per visitor-day = FIRST-T
 ```
 KV: `salt:{sid}:{YYYYMMDD}` → 32 random bytes, TTL so it expires ≤ ~6 h after that local day ends; created by cron up to 24 h ahead (avoids KV negative-cache/eventual-consistency races ✅ [KV](https://developers.cloudflare.com/kv/concepts/how-kv-works/)).
 
-### 4.3 Attribution approach (fixes Edgemetry's gap)
+### 4.3 Attribution approach (fixes the upstream attribution gap)
 1. Pageview → collector computes `vh`, channel/source/medium/campaign, `lang`, etc. and runs one `db.batch` (a transaction ✅):
    ```sql
    -- 1) event row; nv computed BEFORE the visitor-day insert; goal_id from cached goals (path goals)
@@ -277,7 +275,7 @@ Per pageview: `1 + 1/ppv` (ppv = pageviews per visitor-day) ≈ **1.6 at ppv=1.6
 | 50,000 | 5,000 | 81.3k + 5k + 5k = ~91.3k | 91% ⚠️ ceiling |
 
 Ceiling ≈ **50k pageviews/day** per instance. Others that may bind first:
-- **Workers Free: 100,000 requests/day for the whole account** ✅ ([limits](https://developers.cloudflare.com/workers/platform/limits/)) incl. beacons, `/t`, `/a`, API calls, crons, other Workers in that account. Static-asset requests (dashboard, `em.js`) may be billed differently ⚠️ unverified; keep `run_worker_first` limited to dynamic paths.
+- **Workers Free: 100,000 requests/day for the whole account** ✅ ([limits](https://developers.cloudflare.com/workers/platform/limits/)) incl. beacons, `/t`, `/a`, API calls, crons, other Workers in that account. Static-asset requests (dashboard, `ws.js`) may be billed differently ⚠️ unverified; keep `run_worker_first` limited to dynamic paths.
 - D1 over limit ⇒ queries error for the account ✅ → collector fails silent (204), sheds load; budget gauge in dashboard.
 - Reads 5M/day ✅; storage Free 500 MB/DB, 5 GB/account ✅ (stats_daily ≈ 500k rows/yr for 9 sites ≈ 50–80 MB ⚠️).
 - Upgrade: Workers Paid removes daily caps (50M rows written/mo included ✅; price ⚠️ not fetched).
@@ -287,9 +285,9 @@ Ceiling ≈ **50k pageviews/day** per instance. Others that may bind first:
 
 ## 5. Tracker script API
 
-**Install:** the "Add site" screen shows a snippet with the instance's own origin and the new `site_id` (vendoring `em.js` into the site's build is preferred: same-origin, cached by the site's CDN).
+**Install:** the "Add site" screen shows a snippet with the instance's own origin and the new `site_id` (vendoring `ws.js` into the site's build is preferred: same-origin, cached by the site's CDN).
 ```html
-<script defer src="https://YOUR-INSTANCE/em.js" data-site="s_k7q2m9x4t8p3w6ab"></script>
+<script defer src="https://YOUR-INSTANCE/ws.js" data-site="s_k7q2m9x4t8p3w6ab"></script>
 ```
 `data-api` defaults to the **script's own origin + `/e`** (no domain literals in code).
 
@@ -306,15 +304,15 @@ Ceiling ≈ **50k pageviews/day** per instance. Others that may bind first:
 
 **JS API**
 ```js
-edgemetry('pageview')
-edgemetry('event', 'signup')
-edgemetry('event', 'purchase', { value: 49.9 })   // optional numeric value in the SITE's currency
+wispstat('pageview')
+wispstat('event', 'signup')
+wispstat('event', 'purchase', { value: 49.9 })   // optional numeric value in the SITE's currency
 // reserved, not implemented in v1.0: props
-// v1.1: edgemetry('attribution') -> Promise<{channel,source,medium,campaign,content,term}>   (§13)
-// v1.2: edgemetry('token')       -> Promise<string>   (short-lived visit token, §14.2)
+// v1.1: wispstat('attribution') -> Promise<{channel,source,medium,campaign,content,term}>   (§13)
+// v1.2: wispstat('token')       -> Promise<string>   (short-lived visit token, §14.2)
 ```
 - `value`: finite number, `0 ≤ value ≤ 1e9`, rounded to 2 decimals; anything else → event sent without value. No currency argument in the browser API: currency is a **site setting** (one per site; multi-currency is out of scope for v1). Any other key in the options object is ignored (arbitrary properties are deferred, §14.3).
-- Queue stub before load: `window.edgemetry = window.edgemetry || function(){(edgemetry.q=edgemetry.q||[]).push(arguments)}`.
+- Queue stub before load: `window.wispstat = window.wispstat || function(){(wispstat.q=wispstat.q||[]).push(arguments)}`.
 - Transport: `navigator.sendBeacon(api, new Blob([json], {type:'text/plain'}))` (no CORS preflight; 64 KiB cap ✅ [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/sendBeacon)); fallback `fetch(..., {keepalive:true})`.
 - Payload (<1 KB): `{s:<site_id>, k:'pv'|'ev', n, p, r, l, v, us, um, uc, ut, ux, rf}`. `l` = base language from `navigator.language`. `v` = value. **Not sent:** screen/viewport size, timezone, fonts, plugins, `navigator.languages`, hardware info, query string, hash.
 - SPA: pv on route change (debounced 50 ms, deduped); `r` only on first pageview of a load.
@@ -357,7 +355,7 @@ Free: **5 cron triggers/account**, 10 ms CPU per cron invocation, 15 min wall �
 | `nightly` | `0 9 * * *` (default; set per instance) | CORE export → R2 (§10), prune old exports. |
 | `weekly` | `0 15 * * MON` (default; set per instance) | Slack digest (opt-in). Weekday names (numeric DOW 1=Sunday ✅). |
 
-Uses 3 of 5 triggers (other Workers on the account share the 5). Nightly/weekly defaults live in `edgemetry.config`; the operator can change them. Live "today" views are computed from raw partitions on demand and cached 15–60 s.
+Uses 3 of 5 triggers (other Workers on the account share the 5). Nightly/weekly defaults live in `wispstat.config`; the operator can change them. Live "today" views are computed from raw partitions on demand and cached 15–60 s.
 
 ---
 
@@ -375,10 +373,10 @@ interface AuthProvider {
 ```
 Config: `AUTH_PROVIDERS` (default `local`; Eddi: `firebase`; both allowed). Authorization is provider-independent: `userId ∈ site_members` for the site, or role `owner` instance-wide.
 
-1. **`local` (default for self-hosters).** Owner email + password created at claim (§12.3). Password hash = **PBKDF2-SHA256 via Web Crypto** ✅ (supported in Workers) with per-user random salt; iterations configurable (`PBKDF2_ITERATIONS`, default 100000 ⚠️ — Workers' iteration cap and the Free 10 ms CPU fit are unverified; measure; Q-N4). Login → opaque 256-bit session token, **only its hash stored** (`login_sessions`), sent as `__Host-em_session` cookie (`HttpOnly; Secure; SameSite=Strict; Path=/`, 7-day sliding). *This cookie exists only on the operator's dashboard origin; the tracker never sets or reads cookies on tracked sites.* CSRF defenses for cookie auth: SameSite=Strict, `Origin` must equal the instance origin, JSON-only bodies + custom header `X-EM-CSRF`. Rate-limited login with delays; constant-time compares via `crypto.subtle.timingSafeEqual` ✅. Password reset: CLI `pnpm owner:reset` (no outbound email in OSS); see §12.3.
+1. **`local` (default for self-hosters).** Owner email + password created at claim (§12.3). Password hash = **PBKDF2-SHA256 via Web Crypto** ✅ (supported in Workers) with per-user random salt; iterations configurable (`PBKDF2_ITERATIONS`, default 100000 ⚠️ — Workers' iteration cap and the Free 10 ms CPU fit are unverified; measure; Q-N4). Login → opaque 256-bit session token, **only its hash stored** (`login_sessions`), sent as `__Host-ws_session` cookie (`HttpOnly; Secure; SameSite=Strict; Path=/`, 7-day sliding). *This cookie exists only on the operator's dashboard origin; the tracker never sets or reads cookies on tracked sites.* CSRF defenses for cookie auth: SameSite=Strict, `Origin` must equal the instance origin, JSON-only bodies + custom header `X-WS-CSRF`. Rate-limited login with delays; constant-time compares via `crypto.subtle.timingSafeEqual` ✅. Password reset: CLI `pnpm owner:reset` (no outbound email in OSS); see §12.3.
 2. **`firebase` (optional; Eddi's default).** `Authorization: Bearer <Firebase ID token>`; verify per Firebase docs ✅ ([verify-id-tokens](https://firebase.google.com/docs/auth/admin/verify-id-tokens)): RS256; `kid` ∈ keys from `https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com` (cache per `max-age`); `aud` = project ID; `iss` = `https://securetoken.google.com/<projectId>`; `sub` non-empty; `exp/iat/auth_time`. Admin SDK needs Node + service account → use WebCrypto/`jose` ⚠️. `FIREBASE_PROJECT_ID` (+ public `FIREBASE_WEB_CONFIG` served to the SPA, which lazy-loads the Firebase SDK only in this mode). **Revocation is not checked ✅** ⇒ admin actions require `auth_time` ≤ 5 min. UID allowlist via `users`/`site_members` (`fb:<uid>`).
-3. **Embeds:** `X-EM-Key: emk_<site_id>_<secret>`; SHA-256(secret) compared constant-time to `api_keys.key_hash`; checks `kind='read'`, `revoked_at`, `scopes`, `Origin ∈ allowed_origins`, URL site == key site. Read-only, aggregate-only, one site, no export/admin. Treat as semi-public.
-4. **Server keys** (`ems_…`, §14.2) are valid only on the S2S endpoint.
+3. **Embeds:** `X-WS-Key: wsk_<site_id>_<secret>`; SHA-256(secret) compared constant-time to `api_keys.key_hash`; checks `kind='read'`, `revoked_at`, `scopes`, `Origin ∈ allowed_origins`, URL site == key site. Read-only, aggregate-only, one site, no export/admin. Treat as semi-public.
+4. **Server keys** (`wss_…`, §14.2) are valid only on the S2S endpoint.
 
 ### 8.2 Endpoints
 | Method & path | Auth | Returns |
@@ -399,7 +397,7 @@ Config: `AUTH_PROVIDERS` (default `local`; Eddi: `firebase`; both allowed). Auth
 Envelope `{site:{site_id,slug}, tz, currency, from, to, grain, data, generated_at, ttl}`; errors `{error:{code,message}}`.
 
 ### 8.3 CORS
-`Access-Control-Allow-Origin` echoed only if allowed (instance origin for dashboard; key `allowed_origins` for keys), `Vary: Origin`, headers `Authorization, X-EM-Key, X-EM-CSRF, Content-Type`, no credentials for key calls.
+`Access-Control-Allow-Origin` echoed only if allowed (instance origin for dashboard; key `allowed_origins` for keys), `Vary: Origin`, headers `Authorization, X-WS-Key, X-WS-CSRF, Content-Type`, no credentials for key calls.
 
 ### 8.4 Caching
 Authenticate first, then `caches.default` keyed by canonical URL + scope marker. Cache API: custom domains only; per-data-center; no `stale-while-revalidate` in `put/match` ✅ ([Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)). TTLs: live 15 s; includes-today 60 s; closed ranges 1 h. `Cache-Control: private, max-age=15..60`, `ETag`.
@@ -422,7 +420,7 @@ Views
 9. **Export** (CSV/JSON).
 10. **Settings:** site (name, slug, **site ID (copy)**, tz, currency, domains, DNT, pause), goals, API keys (read/server; create-once reveal), members, Slack digest, **auth providers**, consented-mode toggle (v1.4, with a consent warning), sessions toggle (v1.1).
 11. **Data budget:** est. writes/requests today vs Free caps, shed indicator, last backup.
-12. **Embeddable `<EdgemetryMini>`** (key-scoped).
+12. **Embeddable `<WispstatMini>`** (key-scoped).
 
 Slack digest (weekly, opt-in per site): visitors/pv Δ, top sources with conv rate and revenue, top pages, goals, anomaly flag. Slack incoming webhook (secret URL; fixed channel ✅ [Slack](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)) stored as Worker secret; no personal data.
 
@@ -474,12 +472,12 @@ Goal: a stranger with a Cloudflare account gets a working, claimed instance in m
 ### 12.1 Repository (MIT; single Workers app)
 ```
 wrangler.jsonc            # bindings by name only (no IDs), assets, crons, vars
-edgemetry.config.ts       # THE ONLY config module (defaults, env parsing, limits)
+wispstat.config.ts       # THE ONLY config module (defaults, env parsing, limits)
 .dev.vars.example         # secrets declared here (used by Deploy button)
 src/{collector,api,cron,auth,lib}/
 channels.json
 dashboard/                # Vue app -> built into assets dir
-tracker/{em.js,em-consent.js}
+tracker/{ws.js,ws-consent.js}
 migrations/{core,ingest}/ # per-binding migrations_dir
 scripts/{setup.mjs,smoke.mjs,load.mjs,owner-reset.mjs}
 templates/privacy-page.md
@@ -497,7 +495,7 @@ Source must be in a **public GitHub/GitLab repo** and be one Workers app for the
 
 **B. `pnpm setup` (CLI, idempotent, `--dry-run`)** `scripts/setup.mjs` — for local/CI/manual installs:
 1. Checks `wrangler whoami` / Node version.
-2. Creates **both D1 DBs** (`edgemetry-core`, `edgemetry-ingest`), the **KV** namespace, optional **R2** bucket (skips what exists; names configurable).
+2. Creates **both D1 DBs** (`wispstat-core`, `wispstat-ingest`), the **KV** namespace, optional **R2** bucket (skips what exists; names configurable).
 3. Writes bindings into a local `wrangler.local.jsonc` overlay (IDs stay out of git).
 4. Generates `SESSION_SECRET`, `TOKEN_KEY`, `SETUP_TOKEN` with a CSPRNG and uploads via `wrangler secret put` over stdin (never in argv/logs); prints `SETUP_TOKEN` **once**.
 5. Runs migrations for both DBs, deploys, prints the claim URL.
@@ -514,7 +512,7 @@ Source must be in a **public GitHub/GitLab repo** and be one Workers app for the
 - Recovery: `pnpm owner:reset` (needs Cloudflare auth via wrangler: sets a new owner password or re-opens claim after rotating `SETUP_TOKEN`).
 
 ### 12.4 No hard-coded domains
-All environment-specific values are in `edgemetry.config.ts` (parsed from `wrangler.jsonc` vars/secrets): `PUBLIC_BASE_URL?`, `DEFAULT_TZ`, `AUTH_PROVIDERS`, `FIREBASE_*`, cron schedules, retention days, rate limits, caps. A **CI lint test** fails the build on any hostname literal outside an allow-list (`example.com`, `*.workers.dev`, Google key endpoint, `slack.com`, Cloudflare API host). Tracker/docs use `YOUR-INSTANCE` placeholders; the dashboard uses relative URLs.
+All environment-specific values are in `wispstat.config.ts` (parsed from `wrangler.jsonc` vars/secrets): `PUBLIC_BASE_URL?`, `DEFAULT_TZ`, `AUTH_PROVIDERS`, `FIREBASE_*`, cron schedules, retention days, rate limits, caps. A **CI lint test** fails the build on any hostname literal outside an allow-list (`example.com`, `*.workers.dev`, Google key endpoint, `slack.com`, Cloudflare API host). Tracker/docs use `YOUR-INSTANCE` placeholders; the dashboard uses relative URLs.
 
 ### 12.5 README quick start (outline)
 1. What it is / isn't (self-hosted, not SaaS; privacy model in 10 lines).
@@ -532,7 +530,7 @@ Placeholders: `{{operator}}`, `{{contact}}`, `{{site_domain}}`, `{{instance_orig
 ### 12.7 Tests (shipped in the repo; run in CI)
 - **Unit:** channel mapping, local-day/DST/timezone, `vh` derivation, validators (`site_id`, `value`, `lang`), token AEAD round-trip/expiry, PBKDF2 hash/verify, ID format/entropy.
 - **Integration** (Workers test pool ⚠️ Vitest `@cloudflare/vitest-pool-workers` — verify): collector → rollup → API with local D1/KV; claim race (two concurrent claims ⇒ one wins); idempotent day close (rerun = same numbers); shed path; Firebase verification against fixture keys; origin/rate-limit behavior.
-- **Privacy/contract:** responses never contain `Set-Cookie`; `em.js` greps clean of `cookie|localStorage|sessionStorage|indexedDB|screen\.|Intl.*timeZone|getTimezoneOffset|fonts|canvas|navigator.languages`; fuzz test scans all D1 tables for IP/UA/email patterns; `em.js` ≤2 KB gz; no domain literals.
+- **Privacy/contract:** responses never contain `Set-Cookie`; `ws.js` greps clean of `cookie|localStorage|sessionStorage|indexedDB|screen\.|Intl.*timeZone|getTimezoneOffset|fonts|canvas|navigator.languages`; fuzz test scans all D1 tables for IP/UA/email patterns; `ws.js` ≤2 KB gz; no domain literals.
 - **Static:** lint, typecheck, dependency audit.
 - **Ops:** `scripts/smoke.mjs` (post-deploy), `scripts/load.mjs` (write-budget sanity).
 
@@ -542,8 +540,8 @@ Placeholders: `{{operator}}`, `{{contact}}`, `{{site_domain}}`, `{{instance_orig
 
 **Principle:** analytics holds anonymous aggregates + source; the CRM holds people. They are **never joined by an identifier** (no shared UID/email/hash).
 
-1. **Signup event, no email.** The app calls `edgemetry('event','signup')` (browser) or the S2S endpoint (§14.2). The event carries only the name (+ optional `value`); no email, name, UID, or CRM ID — in any field.
-2. **First-touch → CRM contact.** At signup time the app asks the tracker for the visitor's own first-touch fields and writes them to the CRM contact it creates: `first_touch_channel`, `first_touch_source`, `first_touch_medium`, `first_touch_campaign`, `first_touch_content`, `first_touch_term`, `first_touch_ref_host`, `first_touch_date`. Mechanism (v1.1): `edgemetry('attribution')` → `POST /a` returns only the caller's own same-day fields (§6.2), no identifiers. *Until v1.1*, the app captures `utm_*`/`document.referrer` itself on landing (stored by the app in its own consented/first-party storage per its own policy) — outside analytics.
+1. **Signup event, no email.** The app calls `wispstat('event','signup')` (browser) or the S2S endpoint (§14.2). The event carries only the name (+ optional `value`); no email, name, UID, or CRM ID — in any field.
+2. **First-touch → CRM contact.** At signup time the app asks the tracker for the visitor's own first-touch fields and writes them to the CRM contact it creates: `first_touch_channel`, `first_touch_source`, `first_touch_medium`, `first_touch_campaign`, `first_touch_content`, `first_touch_term`, `first_touch_ref_host`, `first_touch_date`. Mechanism (v1.1): `wispstat('attribution')` → `POST /a` returns only the caller's own same-day fields (§6.2), no identifiers. *Until v1.1*, the app captures `utm_*`/`document.referrer` itself on landing (stored by the app in its own consented/first-party storage per its own policy) — outside analytics.
 3. **Consent records live in the CRM** (what was consented, when, text version, source), not in analytics. Analytics (default mode) has no consent concept; consented mode (§14.4) only receives a boolean from the operator's UI, not the record.
 4. **Limits, stated plainly:** in default mode attribution is same-local-day only; a signup on a later day than the first visit can't be attributed from analytics (Q-N2 for the app-side persistence choice, or enable consented mode). Per-source signup counts in analytics and CRM will differ slightly (ad blockers, bots, daily hashing) — treat the CRM as the system of record for people and analytics for trends.
 5. **Eddi's own CRM:** what it must record about analytics-derived fields and legal basis is an open item (Q-N8).
@@ -558,13 +556,13 @@ Placeholders: `{{operator}}`, `{{contact}}`, `{{site_domain}}`, `{{instance_orig
 - Table: `sessions_daily(sid, day, dim, k, sessions, pv, bounces, dur_s_sum, dur_n)` (dim: total|channel|path-entry|country…).
 - Metrics: sessions, **pages per visit**, **rough time on site** (last event − first event per session; single-pageview sessions have unknown duration and are excluded from `dur_n`), bounce rate.
 - Labeling: dashboard badge "approximate" + tooltip: *shared IPs merge visitors, network changes split them, last-page time is unknown, sessions end at midnight (site time), blocked/DNT traffic isn't counted.* Never compared to cookie-based tools as exact.
-- Also ships `POST /a` + `edgemetry('attribution')` (§13) and the optional "upgrade Direct" attribution rule.
+- Also ships `POST /a` + `wispstat('attribution')` (§13) and the optional "upgrade Direct" attribution rule.
 
 ### 14.2 v1.2 — Server-to-server events + visit token (own phase)
 Purpose: server-side events (Stripe payment succeeded, Firebase Function signup) credited to the visit's source and revenue, without cookies or persistent IDs.
 - **Visit token:** `POST /t` (browser → collector, same validation as `/e`) returns an opaque string = **AES-256-GCM** encryption (WebCrypto ✅) of `{v:1, sid, day, vh, exp}` with `TOKEN_KEY`, base64url. Stateless (no D1 write), opaque to the page, **short-lived**: `exp = min(now + 2 h, local-day end + 30 min)` ⚠️ (Q-N7). It is not an ID: it changes on every call, expires within hours, and holds no persistent value (it wraps the existing same-day `vh`).
-- **Carrying it through checkout:** the page calls `edgemetry('token')` right before checkout and passes it in the app's own request/metadata (e.g. Stripe Checkout Session `metadata`/`client_reference_id` ⚠️ field limits unverified; or the app's own order record). The token never goes in a URL that gets logged by third parties if avoidable.
-- **Endpoint:** `POST /api/v1/server/events`, `Authorization: Bearer ems_<site_id>_<secret>` (per-site **server key**, stored hashed, write-only, shown once, rotatable). Strict schema, **unknown fields ⇒ 400**:
+- **Carrying it through checkout:** the page calls `wispstat('token')` right before checkout and passes it in the app's own request/metadata (e.g. Stripe Checkout Session `metadata`/`client_reference_id` ⚠️ field limits unverified; or the app's own order record). The token never goes in a URL that gets logged by third parties if avoidable.
+- **Endpoint:** `POST /api/v1/server/events`, `Authorization: Bearer wss_<site_id>_<secret>` (per-site **server key**, stored hashed, write-only, shown once, rotatable). Strict schema, **unknown fields ⇒ 400**:
   ```json
   { "event": "purchase", "value": 49.90, "currency": "USD",
     "visit_token": "<opaque>", "idempotency_key": "evt_…" }
@@ -583,7 +581,7 @@ Goal: self-reported low-cardinality tags (e.g. `role` = founder|developer|design
 
 ### 14.4 v1.4 — Optional consented mode (per site, `consent_mode`, **OFF by default**)
 > ⚠️ **Documented warnings (README + dashboard toggle):** this mode stores an identifier on the visitor's device. In many jurisdictions this requires prior opt-in consent (e.g. EU ePrivacy Art. 5(3) — from memory ⚠️); Mexico's data-protection law applicability is **unverified** (§2.5). Enabling it **breaks the "no consent banner needed" promise** for that site. The operator is responsible for the banner, notice and legal basis. **Default remains fully cookieless.**
-- Separate script `em-consent.js` (default `em.js` has no storage code). **No banner is shipped**; the operator's own consent UI calls `edgemetry('consent', true|false)`. No consent ⇒ identical behavior to default mode. GPC/DNT = no consent.
+- Separate script `ws-consent.js` (default `ws.js` has no storage code). **No banner is shipped**; the operator's own consent UI calls `wispstat('consent', true|false)`. No consent ⇒ identical behavior to default mode. GPC/DNT = no consent.
 - With consent: a **first-party random 128-bit `cid`** (CSPRNG) in a first-party cookie (`SameSite=Lax`, `Secure`) or localStorage (Q-N6) on the site's own origin; sent only to the instance. No third-party cookies, no cross-site reads, no fingerprinting, no sharing.
 - Server: `consented_visitors(sid, cid_hash BLOB, first_day, first_channel, first_source, first_medium, first_campaign, last_day, active_days)` keyed by `cid_hash = SHA-256(pepper ‖ sid ‖ cid)` (pepper = secret; per-site `sid` ⇒ no cross-site). Enables **returning visitors** and **multi-day/first-touch attribution** (signup on day 3 credited to day-1 source), including S2S events with a `cid`-based token.
 - Cost: +1 write per consented visitor per day (upsert) ⚠️ estimate; CORE growth proportional to consented visitors.
@@ -596,8 +594,8 @@ Goal: self-reported low-cardinality tags (e.g. `role` = founder|developer|design
 
 | Week | Deliverable |
 |---|---|
-| 0–1 | **Spike:** collector on `workers.dev`+KV+D1 (no cookies); measure CPU per request, `INSERT…WHERE NOT EXISTS` no-op write counting, partition create/drop write cost, `json_each` upserts, beacon CORS, PBKDF2 CPU/iteration cap on Free, static-asset request accounting. Repo skeleton, single-Worker config, `edgemetry.config.ts`, migrations (both DBs), CI. |
-| 2 | Site ID + `sites`/rollup schema; tracker (`em.js`, SPA, `lang`, `value`); channel mapping; attribution (`vis_`); hourly + day-close rollups (incl. goals/revenue). |
+| 0–1 | **Spike:** collector on `workers.dev`+KV+D1 (no cookies); measure CPU per request, `INSERT…WHERE NOT EXISTS` no-op write counting, partition create/drop write cost, `json_each` upserts, beacon CORS, PBKDF2 CPU/iteration cap on Free, static-asset request accounting. Repo skeleton, single-Worker config, `wispstat.config.ts`, migrations (both DBs), CI. |
+| 2 | Site ID + `sites`/rollup schema; tracker (`ws.js`, SPA, `lang`, `value`); channel mapping; attribution (`vis_`); hourly + day-close rollups (incl. goals/revenue). |
 | 3 | Auth providers (`local` + `firebase`), claim flow, sites/goals/keys admin, read API + caching/CORS. |
 | 4 | Dashboard (overview, site, sources+conversion+revenue, goals, languages, live); UTM builder; export. |
 | 5 | **OSS packaging:** Deploy button path, `pnpm setup`, README quick start, privacy template, no-domain lint, test suites (unit/integration/privacy). |
@@ -623,7 +621,7 @@ Dropped as answered/obsolete since v0.1: hosted-for-others / long-term Free-tier
 **New in v0.2**
 - **Q-N1** Sessions: default inactivity gap (30 min?) and whether to show "time on site" at all given the last-page blind spot.
 - **Q-N2** CRM first-touch persistence before v1.1: should the app store UTMs in its own storage at landing (needs the app's consent policy), or wait for `/a` + consented mode?
-- **Q-N3** Naming/credit clash with upstream "Edgemetry" (trademark/confusion): rename the OSS project? Attribution wording.
+- **Q-N3** Naming/credit clash with upstream "Wispstat" (trademark/confusion): rename the OSS project? Attribution wording.
 - **Q-N4** PBKDF2 on Free: iteration cap and 10 ms CPU fit ⚠️; if too slow, fall back to Firebase-only on Free, or Argon2/scrypt (WASM) ⚠️.
 - **Q-N5** Deploy button: can it prompt for/generate secrets (`SETUP_TOKEN`)? If not, is a lazily generated claim code shown only in Worker logs/CLI acceptable?
 - **Q-N6** Consented mode: cookie vs localStorage, lifetime (13 months?), pepper rotation, retention.

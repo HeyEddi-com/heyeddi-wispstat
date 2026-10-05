@@ -99,6 +99,14 @@ wrangler d1 export wispstat-core --remote
 ✅ **Tests:** 31/31 PASSING  
 ✅ **Git:** Committed and pushed
 
+## Follow-up file renames (2026-10-04)
+
+- `edgemetry.config.ts` → `wispstat.config.ts`
+- `tracker/em.ts` → `tracker/ws.ts`
+- Specs, build report, and the lockfile package name now use Wispstat identifiers
+- `hayaran/Edgemetry` stays as the inspiration credit
+- The before/after examples above are the historical record of the first rename
+
 ## Notes
 
 - All naming centralized via `branding.config.ts` as designed

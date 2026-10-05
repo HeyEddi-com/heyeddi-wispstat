@@ -3,7 +3,7 @@
  */
 
 import type { Env, AuthContext } from '../lib/types';
-import { getConfig } from '../../edgemetry.config';
+import { getConfig } from '../../wispstat.config';
 import { BRANDING } from '../../branding.config';
 
 export interface AuthProvider {

@@ -4,7 +4,7 @@
  */
 
 import type { Env, BeaconPayload, Site, Goal } from '../lib/types';
-import { getConfig } from '../../edgemetry.config';
+import { getConfig } from '../../wispstat.config';
 import {
   isValidSiteId,
   normalizePath,

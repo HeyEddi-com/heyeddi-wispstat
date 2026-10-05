@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import type { Env } from './lib/types';
 import { handleCollector } from './collector';
 import { handleClaim, handleLogin, handleLogout } from './auth/local';
-import { getConfig } from '../edgemetry.config';
+import { getConfig } from '../wispstat.config';
 
 const app = new Hono<{ Bindings: Env }>();
 

@@ -1,4 +1,4 @@
-# HeyEddi Edgemetry — Technical Spec (v0.1 draft)
+# HeyEddi Wispstat — Technical Spec (v0.1 draft)
 
 Owner: Eddi Sanchez · Date: 2026-10-04 · Status: draft for build
 Inspired by (MIT) [hayaran/Edgemetry](https://github.com/hayaran/Edgemetry). From-scratch implementation; no code copied.
@@ -12,7 +12,7 @@ Inspired by (MIT) [hayaran/Edgemetry](https://github.com/hayaran/Edgemetry). Fro
 **Goals**
 1. Cookieless, privacy-first analytics for ~9+ owned sites: climb, egregor-app, nunuvi, helpus, proven3, jobworth, heyeddi, CI.heyeddi.com, buybetter.
 2. Runs on Cloudflare free tier (Workers + D1 + Pages), ~$0/month at current traffic, with a clean upgrade path to Workers Paid.
-3. Growth features Edgemetry lacks: **first-touch-per-visit attribution** (utm + channel-grouped referrer) so goals/signups are attributed to a source and per-source conversion rate is computable; goals; UTM link builder; cross-site overview; CSV/JSON export; opt-in weekly Slack digest; **per-site timezone** (America/Mexico_City), not all-UTC.
+3. Growth features Wispstat lacks: **first-touch-per-visit attribution** (utm + channel-grouped referrer) so goals/signups are attributed to a source and per-source conversion rate is computable; goals; UTM link builder; cross-site overview; CSV/JSON export; opt-in weekly Slack digest; **per-site timezone** (America/Mexico_City), not all-UTC.
 4. Dashboard = Vue static page on Pages. Small read-only JSON API; per-site scoped keys so Eddi's own apps can embed mini dashboards.
 5. Solo-maintainable: 3 small Workers, 2 D1 databases, one static dashboard.
 
@@ -57,7 +57,7 @@ Inspired by (MIT) [hayaran/Edgemetry](https://github.com/hayaran/Edgemetry). Fro
 Per-site `honor_dnt` (default off) + tracker attribute `data-respect-dnt`. When on: tracker sends nothing if `navigator.doNotTrack === '1'` or `navigator.globalPrivacyControl === true`; collector also drops requests with header `DNT: 1` or `Sec-GPC: 1`. (`globalPrivacyControl` is experimental/limited availability ✅ [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/globalPrivacyControl), so the server header check is the reliable path.)
 
 ### 2.5 GDPR notes — **not legal advice** ⚠️ (all from memory; get counsel/DPA guidance before relying)
-- IP is generally treated as personal data; Edgemetry processes it transiently in memory for hash+country and doesn't store/log it. Cloudflare still sees it as network processor.
+- IP is generally treated as personal data; Wispstat processes it transiently in memory for hash+country and doesn't store/log it. Cloudflare still sees it as network processor.
 - Nothing is stored on/read from the device ⇒ the ePrivacy "consent for storage/access" trigger is arguably not hit, but national regulators differ on whether any analytics is consent-exempt (e.g. conditions on purpose, retention, no cross-site tracking). Per-site config can force `honor_dnt`, and a "disable analytics" privacy-page toggle is a v1.1 option.
 - At-rest data is pseudonymous (`vh`, short-lived) then aggregated; no way to look up "a person's data" ⇒ access/erasure requests can't be actioned against an identifier (document this).
 - **Retention disclosure must include Time Travel**: pseudonymous raw rows dropped from the live DB within ~3 days still exist in D1 point-in-time history for up to 7 days (Free) / 30 days (Paid) ✅ (§10). State this honestly in the privacy page.
@@ -71,9 +71,9 @@ Per-site `honor_dnt` (default off) + tracker attribute `data-respect-dnt`. When 
 ```mermaid
 flowchart LR
   subgraph Sites["Static sites (Cloudflare Pages) ×9+"]
-    T["em.js tracker ≤2KB<br/>(vendored per site)"]
+    T["ws.js tracker ≤2KB<br/>(vendored per site)"]
   end
-  T -- "sendBeacon POST text/plain" --> C["em-collector Worker<br/>em.heyeddi.com/e"]
+  T -- "sendBeacon POST text/plain" --> C["em-collector Worker<br/>ws.heyeddi.com/e"]
   C -- "salt (cached)" --> KV[("KV: salts<br/>TTL")]
   C -- "config (cached 60s)" --> CORE[("D1 CORE<br/>sites, goals, keys,<br/>rollups, utm_links")]
   C -- "ev_/vis_/cv_ day partitions" --> ING[("D1 INGEST<br/>raw, disposable")]
@@ -81,9 +81,9 @@ flowchart LR
   CRON -- "upsert rollups, watermarks" --> CORE
   CRON -- "weekly digest (opt-in)" --> SL["Slack incoming webhook"]
   CRON -- "nightly CORE export" --> R2[("R2 backups")]
-  D["Dashboard (Vue static, Pages)<br/>edgemetry.heyeddi.com"] -- "Firebase Auth sign-in" --> FA["Firebase Auth (Google)"]
-  D -- "Bearer Firebase ID token" --> A["em-api Worker<br/>em.heyeddi.com/api/v1"]
-  E["Eddi's apps (embeds)"] -- "X-EM-Key (per-site, read-only)" --> A
+  D["Dashboard (Vue static, Pages)<br/>wispstat.heyeddi.com"] -- "Firebase Auth sign-in" --> FA["Firebase Auth (Google)"]
+  D -- "Bearer Firebase ID token" --> A["em-api Worker<br/>ws.heyeddi.com/api/v1"]
+  E["Eddi's apps (embeds)"] -- "X-WS-Key (per-site, read-only)" --> A
   A -- "verify JWT vs Google keys<br/>(cached)" --> GK["googleapis x509 keys"]
   A -- "Cache API 15–3600s" --> CORE
   A -. "live view only" .-> ING
@@ -94,7 +94,7 @@ flowchart LR
 - **Two D1 DBs** (Free allows 10 DBs ✅):
   - `INGEST`: raw per-day partitions + conversions; disposable; never backed up.
   - `CORE`: config + all rollups; backed up (§10). Splitting means export (which blocks DB requests while running ✅) never blocks ingestion, and backups don't contain pseudonymous raw rows or salts.
-- Hostnames (assumes heyeddi.com DNS on Cloudflare ⚠️): `em.heyeddi.com` = Worker custom domain (collector + API; needed for working Cache API ✅); `edgemetry.heyeddi.com` = dashboard on Pages.
+- Hostnames (assumes heyeddi.com DNS on Cloudflare ⚠️): `ws.heyeddi.com` = Worker custom domain (collector + API; needed for working Cache API ✅); `wispstat.heyeddi.com` = dashboard on Pages.
 - "No third-party requests": the beacon goes to an Eddi-owned domain (first-party in ownership, cross-origin technically). Optional later: per-site `a.<site>` CNAME to the Worker (Worker custom domains: 100 per zone ✅).
 
 ---
@@ -189,7 +189,7 @@ CREATE TABLE cv_20261004 (               -- one row per (visit, goal): first con
 ```
 KV: `salt:{sid}:{YYYYMMDD}` → 32 random bytes (base64), TTL set so it expires ≤ ~6 h after that local day ends. Created by cron up to 24 h ahead (avoids KV negative-cache/eventual-consistency races ✅ [KV consistency](https://developers.cloudflare.com/kv/concepts/how-kv-works/)).
 
-### 4.3 Attribution approach (fixes Edgemetry's gap)
+### 4.3 Attribution approach (fixes the upstream attribution gap)
 1. Pageview arrives → collector computes `vh`, `channel/source/medium/campaign` (pure function, §4.4) and issues, in one `db.batch` (a transaction ✅):
    ```sql
    -- 1) event, flagged if it starts the visit (evaluated BEFORE the visit insert)
@@ -223,7 +223,7 @@ Stored on the visit row at ingest (`ref_host` and raw utm also stored, so mappin
 ### 4.6 Write-budget math (Free: 100,000 rows written/day, resets 00:00 UTC ✅)
 Counting rule ✅: each inserted/updated/deleted row = 1; each secondary index entry = +1; row width irrelevant ([D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/)). We avoid secondary indexes.
 
-Per pageview: `1 (ev row) + 1/ppv (new vis row)`, where ppv = pageviews per visitor-day. Edgemetry's ~1.2 writes/pv → ours ≈ **1.6 at ppv=1.6** (the +0.4–0.6 is the price of attribution).
+Per pageview: `1 (ev row) + 1/ppv (new vis row)`, where ppv = pageviews per visitor-day. Wispstat's ~1.2 writes/pv → ours ≈ **1.6 at ppv=1.6** (the +0.4–0.6 is the price of attribution).
 Per custom event: 1. Per first conversion/visitor/goal/day: 1.
 Overhead/day (estimate, measure in spike): hourly upserts ≈ 9×24 = 216; daily rollup rows ≈ 9 sites × ~100–400 = 0.9–3.6k; salts ≈ 9 KV writes (KV, not D1); partition DDL (unknown, ⚠️). Reserve **5k**, plus **10% headroom**.
 
@@ -235,7 +235,7 @@ Overhead/day (estimate, measure in spike): hourly upserts ≈ 9×24 = 216; daily
 
 **Ceiling ≈ 50k pageviews/day** total at ppv≈1.6. Other ceilings that may bind first:
 - **Workers Free: 100,000 requests/day for the whole account** ✅ ([limits](https://developers.cloudflare.com/workers/platform/limits/)) — every beacon, API call, cron run, and *Pages Functions* call from any of Eddi's Workers counts. Over-limit ⇒ Error 1027 (route fail-open or fail-closed configurable). Set collector route **fail open**.
-- D1 over-limit ⇒ queries error for the account (all D1 users, not just Edgemetry) ✅ → collector must **fail silent** (204) and shed load; budget gauge in dashboard (§9).
+- D1 over-limit ⇒ queries error for the account (all D1 users, not just Wispstat) ✅ → collector must **fail silent** (204) and shed load; budget gauge in dashboard (§9).
 - Reads: 5M/day ✅; rollups read each raw row ~once per dimension; fine to ~50k pv/day.
 - Storage: Free = 500 MB/DB ✅, 5 GB/account ✅; stats_daily ≈ 9 sites×~150 rows×365 ≈ 500k rows/yr (est. ~50–80 MB ⚠️).
 - Upgrade path: Workers Paid removes daily caps and uses monthly included quotas (50M rows written/mo ✅; $ price of Paid plan ⚠️ not fetched).
@@ -244,16 +244,16 @@ Overhead/day (estimate, measure in spike): hourly upserts ≈ 9×24 = 216; daily
 
 ## 5. Tracker script API
 
-**Install** (preferred: vendor `em.js` into each site's build so it's same-origin and cached by the site; or load from dashboard origin):
+**Install** (preferred: vendor `ws.js` into each site's build so it's same-origin and cached by the site; or load from dashboard origin):
 ```html
-<script defer src="/em.js" data-site="climb"></script>
+<script defer src="/ws.js" data-site="climb"></script>
 ```
 **Attributes**
 
 | Attribute | Default | Meaning |
 |---|---|---|
 | `data-site` | required | site slug |
-| `data-api` | `https://em.heyeddi.com/e` | collector URL |
+| `data-api` | `https://ws.heyeddi.com/e` | collector URL |
 | `data-spa` | `auto` | `auto` patches `history.pushState/replaceState` + `popstate`; `off` = manual only |
 | `data-hash-mode` | off | include `location.hash` path (hash routers) |
 | `data-auto` | `true` | `false` = don't auto-send pageviews |
@@ -263,13 +263,13 @@ Overhead/day (estimate, measure in spike): hourly upserts ≈ 9×24 = 216; daily
 
 **JS API**
 ```js
-edgemetry('pageview')                      // manual (SPA frameworks with data-spa=off)
-edgemetry('event', 'signup')               // custom event / goal trigger; name ≤64, [a-z0-9_:.-]
-edgemetry('event', 'checkout_started')
+wispstat('pageview')                      // manual (SPA frameworks with data-spa=off)
+wispstat('event', 'signup')               // custom event / goal trigger; name ≤64, [a-z0-9_:.-]
+wispstat('event', 'checkout_started')
 // queue stub (so calls before load are kept):
-// window.edgemetry = window.edgemetry || function(){ (edgemetry.q = edgemetry.q || []).push(arguments) }
+// window.wispstat = window.wispstat || function(){ (wispstat.q = wispstat.q || []).push(arguments) }
 ```
-Vue/Firebase example: after `createUserWithEmailAndPassword` resolves → `edgemetry('event','signup')`.
+Vue/Firebase example: after `createUserWithEmailAndPassword` resolves → `wispstat('event','signup')`.
 
 **Behavior**
 - Transport: `navigator.sendBeacon(api, new Blob([json], {type:'text/plain'}))` (no CORS preflight; 64 KiB cap ✅ [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/sendBeacon)); fallback `fetch(..., {method:'POST', keepalive:true, body})`. No unload/duration beacon in v1.
@@ -277,13 +277,13 @@ Vue/Firebase example: after `createUserWithEmailAndPassword` resolves → `edgem
 - SPA: on route change send a `pv` (debounced 50 ms, skip if same path); on SPA nav `r` omitted; UTM sent only if present in `location.search`.
 - Skips: `prerender`/hidden-prerender, `navigator.webdriver`, excluded paths, DNT/GPC if enabled, `localhost`/`file:`.
 - Size target ≤ 2 KB gzipped; no dependencies; ES2017; errors swallowed.
-- Host-site CSP must allow `connect-src https://em.heyeddi.com`.
+- Host-site CSP must allow `connect-src https://ws.heyeddi.com`.
 
 ---
 
 ## 6. Collector endpoint
 
-`POST https://em.heyeddi.com/e`  (also `OPTIONS`)
+`POST https://ws.heyeddi.com/e`  (also `OPTIONS`)
 - Body: JSON (≤2 KB, `Content-Type: text/plain` or `application/json`).
 - Responses: `204` accepted **or silently dropped** (bot, unknown site, paused, DNT, budget shed); `400` malformed; `413` too large; `429` rate-limited. Always `Cache-Control: no-store`; **never `Set-Cookie`**. CORS: `Access-Control-Allow-Origin` = validated request Origin, `Vary: Origin`; preflight `204` with `Allow-Methods: POST`, `Allow-Headers: Content-Type`, `Max-Age: 86400`. ⚠️ Beacon CORS/credentials behavior differs per browser — test Chrome/Safari/Firefox in spike.
 
@@ -320,11 +320,11 @@ Weekly/monthly aggregates are computed from `stats_daily` at query time.
 
 ## 8. Read API (`em-api`)
 
-Base: `https://em.heyeddi.com/api/v1` · JSON · GET only for data · all dates are **site-local** `YYYY-MM-DD` inclusive; `grain=hour` returns ISO timestamps with offset.
+Base: `https://ws.heyeddi.com/api/v1` · JSON · GET only for data · all dates are **site-local** `YYYY-MM-DD` inclusive; `grain=hour` returns ISO timestamps with offset.
 
 ### 8.1 Auth
 1. **Dashboard / admin:** `Authorization: Bearer <Firebase ID token>`. Verify per Firebase docs ✅ ([verify-id-tokens](https://firebase.google.com/docs/auth/admin/verify-id-tokens)): RS256; `kid` ∈ keys from `https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com` (cache keys in isolate per `Cache-Control: max-age`); `aud` = Firebase project ID; `iss` = `https://securetoken.google.com/<projectId>`; `sub` non-empty; `exp`/`iat`/`auth_time` sane. The Admin SDK needs a service account and Node — use WebCrypto/`jose` ⚠️ (library choice is my recommendation). Then authorize: `uid ∈ site_members` for the requested site, or `uid ∈ OWNER_UIDS` (Worker secret) for all. **Revocation is not checked by verification ✅** ⇒ sensitive admin actions (keys, members, deleting goals) require `auth_time` ≤ 5 min (force reauth). Token lifetime ≈ 1 h ⚠️.
-2. **Embeds:** `X-EM-Key: emk_<key_id>_<secret>`; server compares SHA-256(secret) to `api_keys.key_hash` (constant-time), checks `revoked_at`, `scopes`, `Origin ∈ allowed_origins`, and that URL `site` == key's site. Keys are read-only, aggregate-only, scoped to ONE site, and **cannot** export or call admin routes. Treat as semi-public (will sit in client bundles): rate-limited per key, revocable, rotatable. `last_used_day` updated at most once/day/key (avoid write amplification).
+2. **Embeds:** `X-WS-Key: wsk_<key_id>_<secret>`; server compares SHA-256(secret) to `api_keys.key_hash` (constant-time), checks `revoked_at`, `scopes`, `Origin ∈ allowed_origins`, and that URL `site` == key's site. Keys are read-only, aggregate-only, scoped to ONE site, and **cannot** export or call admin routes. Treat as semi-public (will sit in client bundles): rate-limited per key, revocable, rotatable. `last_used_day` updated at most once/day/key (avoid write amplification).
 
 ### 8.2 Endpoints
 | Method & path | Auth | Returns |
@@ -343,7 +343,7 @@ Base: `https://em.heyeddi.com/api/v1` · JSON · GET only for data · all dates 
 Envelope: `{site, tz, from, to, grain, data, generated_at, ttl}`; errors `{error:{code,message}}` with `401/403/404/422/429`. `limit` ≤ 500.
 
 ### 8.3 CORS
-`Access-Control-Allow-Origin` = request Origin **only if** allowed (dashboard origin for token calls; key's `allowed_origins` for key calls), else omitted; `Vary: Origin`; `Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS`; `Allow-Headers: Authorization, X-EM-Key, Content-Type`; `Max-Age: 86400`; no credentials (no cookies ⇒ no CSRF surface).
+`Access-Control-Allow-Origin` = request Origin **only if** allowed (dashboard origin for token calls; key's `allowed_origins` for key calls), else omitted; `Vary: Origin`; `Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS`; `Allow-Headers: Authorization, X-WS-Key, Content-Type`; `Max-Age: 86400`; no credentials (no cookies ⇒ no CSRF surface).
 
 ### 8.4 Caching
 Authenticate **first**, then `caches.default` keyed by canonical URL (+ scope marker; never serve one site's data to another). Cache API works on custom domains and is **per-data-center, not replicated** ✅ ([Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)); `stale-while-revalidate` is not supported in `cache.put/match` ✅. TTLs: `live` 15 s; ranges including today 60 s; closed-day-only ranges 1 h; `overview` 60 s. Client response `Cache-Control: private, max-age=15..60`; add `ETag`. Rate limit per key and per uid with the Rate Limiting binding (damper only).
@@ -366,7 +366,7 @@ Views
 9. **Export:** CSV/JSON of daily/sources/goals for a range.
 10. **Settings (owner):** site tz, domains, honor DNT, pause ingest, goals, API keys (create-once reveal, revoke, allowed origins, scopes), members (Firebase UIDs), Slack digest toggle.
 11. **Data budget:** estimated writes today vs 100k (from `stats_hourly` × factor; optionally CF GraphQL analytics ⚠️), requests/day estimate, shed-mode indicator, last backup time.
-12. **Embeddable `<EdgemetryMini>`** Vue component (+ vanilla snippet): sparkline + KPIs from key-scoped API.
+12. **Embeddable `<WispstatMini>`** Vue component (+ vanilla snippet): sparkline + KPIs from key-scoped API.
 
 Slack digest (weekly, opt-in per site): Mon 09:00 local; per site: visits & pv with Δ vs prior week, top 3 sources with conv rate, top 3 pages, goal totals, anomaly flag (>3× median). Delivered via Slack incoming webhook (JSON POST; URL contains a secret; channel fixed by webhook ✅ [Slack docs](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)) stored as Worker secret. Contains no personal data.
 
@@ -443,7 +443,7 @@ Slack digest (weekly, opt-in per site): Mon 09:00 local; per site: visits & pv w
 
 **Questions**
 - Q1. Salt/visit window = site-local day (my proposal) vs UTC day (your spec). Local day makes daily uniques exact for CDMX; confirm.
-- Q2. Is heyeddi.com DNS on Cloudflare (needed for `em.heyeddi.com` Worker custom domain + working Cache API)? Are all 9 sites' domains on Cloudflare (for optional per-site CNAMEs)?
+- Q2. Is heyeddi.com DNS on Cloudflare (needed for `ws.heyeddi.com` Worker custom domain + working Cache API)? Are all 9 sites' domains on Cloudflare (for optional per-site CNAMEs)?
 - Q3. Sign-up flows: do any use another origin (central auth domain)? Cross-origin hops change `vh` (site is in the hash) and would break attribution — keep sign-in on the same origin (popup/redirect back) or accept.
 - Q4. Any site needing a non-whole-hour tz? (Unsupported v1.)
 - Q5. Stay on Free long-term? Whole-account caps (requests, D1 rows) are shared with Eddi's other Workers.
@@ -459,7 +459,7 @@ Slack digest (weekly, opt-in per site): Mon 09:00 local; per site: visits & pv w
 6. Time Travel history keeps pseudonymous raw data 7–30 days: disclosure required.
 7. Cron propagation delay (≤15 min) and UTC-only schedules ✅.
 8. Legal: GDPR/ePrivacy position unreviewed.
-9. Browser quirks: Safari ITP/ad-blockers may block `em.heyeddi.com` (undercount); GPC API availability limited.
+9. Browser quirks: Safari ITP/ad-blockers may block `ws.heyeddi.com` (undercount); GPC API availability limited.
 10. KV (eventual consistency, free 1,000 writes/day, 100k reads/day ✅) is fine for ~9 salt writes/day but cold-isolate salt reads add KV reads; cache aggressively.
 
 ---

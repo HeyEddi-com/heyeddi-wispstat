@@ -230,7 +230,7 @@ npm test
 ├── scripts/               # Setup, smoke tests
 ├── templates/             # Privacy page template
 ├── branding.config.ts     # Centralized naming
-├── edgemetry.config.ts    # App configuration
+├── wispstat.config.ts    # App configuration
 └── wrangler.toml          # Cloudflare config
 ```
 
