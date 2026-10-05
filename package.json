@@ -1,0 +1,62 @@
+{
+  "name": "edgemetrics",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Privacy-first, cookie-free web analytics running on Cloudflare Workers + D1 + KV",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler d1 migrations apply CORE --remote && wrangler d1 migrations apply INGEST --remote && wrangler deploy",
+    "build": "npm run build:dashboard && npm run build:tracker",
+    "build:dashboard": "cd dashboard && npm run build",
+    "build:tracker": "cd tracker && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "setup": "tsx scripts/setup.mjs",
+    "smoke": "tsx scripts/smoke.mjs",
+    "owner:reset": "tsx scripts/owner-reset.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.6.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.0",
+    "@cloudflare/workers-types": "^4.20241004.0",
+    "@types/node": "^22.7.4",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "eslint": "^8.57.1",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2",
+    "wrangler": "^3.78.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "CORE": {
+        "type": "d1",
+        "description": "Core database (config, rollups, users)"
+      },
+      "INGEST": {
+        "type": "d1",
+        "description": "Ingest database (raw events, disposable)"
+      },
+      "SALTS": {
+        "type": "kv",
+        "description": "Daily visitor salts with TTL"
+      },
+      "BACKUPS": {
+        "type": "r2",
+        "description": "Optional: CORE database backups"
+      }
+    }
+  }
+}

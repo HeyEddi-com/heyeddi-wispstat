@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.local
+wrangler.local.toml
+*.log
+.DS_Store
+
+# Local test artifacts
+coverage/
+.vitest/
+
+# Build outputs
+dashboard/dist/
+tracker/dist/

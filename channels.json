@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "channels": {
+    "paid": {
+      "name": "Paid",
+      "priority": 1,
+      "medium_patterns": ["cpc", "ppc", "paid", "paidsocial"]
+    },
+    "email": {
+      "name": "Email",
+      "priority": 2,
+      "medium_patterns": ["email", "newsletter"]
+    },
+    "organic_search": {
+      "name": "Organic Search",
+      "hosts": [
+        "google.com", "google.co.uk", "google.ca", "google.com.mx",
+        "bing.com", "duckduckgo.com", "ecosia.org",
+        "brave.com", "yandex.com", "yandex.ru", "baidu.com"
+      ]
+    },
+    "hacker_news": {
+      "name": "Hacker News",
+      "source_aliases": ["hn", "hackernews", "news.ycombinator"],
+      "hosts": ["news.ycombinator.com"]
+    },
+    "x": {
+      "name": "X",
+      "source_aliases": ["twitter", "x", "t.co"],
+      "hosts": ["twitter.com", "x.com", "t.co"]
+    },
+    "reddit": {
+      "name": "Reddit",
+      "hosts": ["reddit.com"]
+    },
+    "linkedin": {
+      "name": "LinkedIn",
+      "hosts": ["linkedin.com", "lnkd.in"]
+    },
+    "devto": {
+      "name": "Dev.to",
+      "source_aliases": ["devto", "dev.to"],
+      "hosts": ["dev.to"]
+    },
+    "product_hunt": {
+      "name": "Product Hunt",
+      "source_aliases": ["producthunt", "product-hunt"],
+      "hosts": ["producthunt.com"]
+    },
+    "github": {
+      "name": "GitHub",
+      "hosts": ["github.com"]
+    },
+    "youtube": {
+      "name": "YouTube",
+      "hosts": ["youtube.com", "youtu.be"]
+    },
+    "facebook_instagram": {
+      "name": "Facebook/Instagram",
+      "source_aliases": ["facebook", "fb", "instagram", "ig"],
+      "hosts": ["facebook.com", "fb.com", "instagram.com", "fb.me", "l.facebook.com", "l.instagram.com"]
+    },
+    "mastodon_bsky_threads": {
+      "name": "Mastodon/Bluesky/Threads",
+      "source_aliases": ["mastodon", "bluesky", "bsky", "threads"],
+      "hosts": ["mastodon.social", "bsky.app", "threads.net"]
+    },
+    "medium_hashnode": {
+      "name": "Medium/Hashnode",
+      "source_aliases": ["medium", "hashnode"],
+      "hosts": ["medium.com", "hashnode.com"]
+    },
+    "indie_lobsters": {
+      "name": "Indie Hackers/Lobsters",
+      "source_aliases": ["indiehackers", "indie-hackers", "lobsters"],
+      "hosts": ["indiehackers.com", "lobste.rs"]
+    },
+    "ai_assistants": {
+      "name": "AI assistants",
+      "source_aliases": ["chatgpt", "claude", "gemini", "perplexity"],
+      "hosts": [
+        "chatgpt.com", "chat.openai.com",
+        "claude.ai",
+        "gemini.google.com",
+        "perplexity.ai"
+      ]
+    }
+  },
+  "fallback": {
+    "direct": "Direct",
+    "own_sites": "Own sites",
+    "referral": "Referral",
+    "unknown": "(unknown)"
+  }
+}
