@@ -96,8 +96,6 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
     return errorResponse('method_not_allowed', 'POST required', 405);
   }
   
-  const config = getConfig(env);
-  
   const body = await request.json() as {
     email: string;
     password: string;

@@ -80,12 +80,13 @@ export async function sha256(data: Uint8Array | string): Promise<Uint8Array> {
 export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   
-  // @ts-expect-error - timingSafeEqual is Cloudflare-specific
-  if (typeof crypto.subtle.timingSafeEqual === 'function') {
-    // @ts-expect-error
-    return crypto.subtle.timingSafeEqual(a, b);
+  // Cloudflare Workers has timingSafeEqual, but not in standard types
+  const cryptoSubtle = crypto.subtle as any;
+  if (typeof cryptoSubtle.timingSafeEqual === 'function') {
+    return cryptoSubtle.timingSafeEqual(a, b);
   }
   
+  // Fallback
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a[i]! ^ b[i]!;

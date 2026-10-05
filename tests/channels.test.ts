@@ -3,11 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeChannel } from '../src/lib/channels';
+import { computeChannel, type ParsedSite } from '../src/lib/channels';
 import { CONSTANTS } from '../edgemetry.config';
-import type { BeaconPayload, Site } from '../src/lib/types';
+import type { BeaconPayload } from '../src/lib/types';
 
-const mockSite: Site = {
+const mockSite: ParsedSite = {
   sid: 1,
   site_id: 's_test',
   slug: 'test',
@@ -113,7 +113,7 @@ describe('Channel grouping', () => {
   });
   
   it('identifies own sites', () => {
-    const otherSite: Site = {
+    const otherSite: ParsedSite = {
       ...mockSite,
       sid: 2,
       site_id: 's_other',

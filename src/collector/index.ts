@@ -8,11 +8,9 @@ import { getConfig } from '../../edgemetry.config';
 import {
   isValidSiteId,
   normalizePath,
-  normalizeUtm,
   normalizeEventName,
   normalizeLanguage,
   normalizeValue,
-  coarseIpHash,
   errorResponse,
   getLocalDate,
   getPartitionSuffix,
@@ -82,9 +80,9 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
   // 4. Origin check
   const origin = request.headers.get('origin') || request.headers.get('referer') || '';
   const originHost = extractHost(origin);
-  const domains = parseJsonSafe<string[]>(site.domains, []);
+  const domainList = JSON.parse(site.domains) as string[];
   
-  if (!originHost || !domains.some(d => originHost === d || originHost === `www.${d}`)) {
+  if (!originHost || !domainList.some(d => originHost === d || originHost === `www.${d}`)) {
     return new Response(null, { status: 204, headers: corsHeaders(request) });
   }
   
@@ -121,7 +119,7 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
   const allSites = await getAllSites(env);
   
   const referrer = payload.r || null;
-  const attribution = computeChannel(payload, referrer, domains, allSites);
+  const attribution = computeChannel(payload, referrer, domainList, allSites);
   
   // Language
   const clientLang = payload.l;
@@ -132,12 +130,6 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
   const path = normalizePath(payload.p, config.limits.pathMaxLength);
   const eventName = payload.k === 'ev' ? normalizeEventName(payload.n, config.limits.eventNameMaxLength) : null;
   const valueX100 = payload.k === 'ev' ? normalizeValue(payload.v) : null;
-  
-  const utm_source = normalizeUtm(payload.us || payload.rf, config.limits.utmMaxLength);
-  const utm_medium = normalizeUtm(payload.um, config.limits.utmMaxLength);
-  const utm_campaign = normalizeUtm(payload.uc, config.limits.utmMaxLength);
-  const utm_content = normalizeUtm(payload.ux, config.limits.utmMaxLength);
-  const utm_term = normalizeUtm(payload.ut, config.limits.utmMaxLength);
   
   // 9. Goal matching
   const goals = await getGoalsCached(env, site.sid);
@@ -239,21 +231,7 @@ async function getSiteCached(env: Env, siteId: string): Promise<Site | null> {
   
   const result = await env.CORE.prepare(
     'SELECT * FROM sites WHERE site_id = ?'
-  ).bind(siteId).first<{
-    sid: number;
-    site_id: string;
-    slug: string | null;
-    name: string;
-    domains: string;
-    tz: string;
-    currency: string;
-    honor_dnt: number;
-    ingest_paused: number;
-    digest_enabled: number;
-    sessions_enabled: number;
-    consent_mode: number;
-    created_at: number;
-  }>();
+  ).bind(siteId).first<Site>();
   
   if (!result) return null;
   
@@ -264,14 +242,29 @@ async function getSiteCached(env: Env, siteId: string): Promise<Site | null> {
     digest_enabled: Boolean(result.digest_enabled),
     sessions_enabled: Boolean(result.sessions_enabled),
     consent_mode: Boolean(result.consent_mode),
-    domains: parseJsonSafe<string[]>(result.domains, []),
   };
   
   siteCache.set(siteId, { site, expires: Date.now() + 60_000 });
   return site;
 }
 
-async function getAllSites(env: Env): Promise<Site[]> {
+interface ParsedSite {
+  sid: number;
+  site_id: string;
+  slug: string | null;
+  name: string;
+  domains: string[];
+  tz: string;
+  currency: string;
+  honor_dnt: boolean;
+  ingest_paused: boolean;
+  digest_enabled: boolean;
+  sessions_enabled: boolean;
+  consent_mode: boolean;
+  created_at: number;
+}
+
+async function getAllSites(env: Env): Promise<ParsedSite[]> {
   const results = await env.CORE.prepare('SELECT * FROM sites').all();
   
   return results.results.map((r: any) => ({

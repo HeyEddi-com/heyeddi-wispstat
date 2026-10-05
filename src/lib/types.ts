@@ -30,7 +30,7 @@ export interface Site {
   site_id: string;
   slug: string | null;
   name: string;
-  domains: string[];
+  domains: string; // JSON string, parsed to string[] when needed
   tz: string;
   currency: string;
   honor_dnt: boolean;

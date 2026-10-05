@@ -61,7 +61,7 @@ app.get('/api/v1/*', async (c) => {
 export default {
   fetch: app.fetch,
   
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  async scheduled(event: ScheduledEvent, _env: Env, _ctx: ExecutionContext) {
     // Cron logic to be implemented
     console.log('Cron triggered:', event.cron);
   },

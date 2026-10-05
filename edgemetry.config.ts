@@ -58,9 +58,9 @@ export interface Config {
 /**
  * Parse environment and return validated config
  */
-export function getConfig(env: Record<string, string | undefined>): Config {
+export function getConfig(env: any): Config {
   const authProvidersStr = env.AUTH_PROVIDERS || 'local';
-  const authProviders = authProvidersStr.split(',').map(p => p.trim()) as ('local' | 'firebase')[];
+  const authProviders = authProvidersStr.split(',').map((p: string) => p.trim()) as ('local' | 'firebase')[];
   
   if (authProviders.length === 0 || !authProviders.every(p => p === 'local' || p === 'firebase')) {
     throw new Error('AUTH_PROVIDERS must be "local", "firebase", or "local,firebase"');
