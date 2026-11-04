@@ -15,6 +15,7 @@ import {
 } from '../lib/partitions';
 import { precreateSalts } from '../lib/salt';
 import { CONSTANTS } from '../../wispstat.config';
+import { sessionRollup } from './sessions';
 
 const TOP_N = 50;
 
@@ -24,6 +25,7 @@ interface SiteRow {
   tz: string;
   name: string;
   digest_enabled: number;
+  sessions_enabled?: number;
 }
 
 interface DimRow {
@@ -55,7 +57,7 @@ interface GoalRow {
 
 export async function listSites(env: Env): Promise<SiteRow[]> {
   const rows = await env.CORE.prepare(
-    'SELECT sid, site_id, tz, name, digest_enabled FROM sites'
+    'SELECT sid, site_id, tz, name, digest_enabled, sessions_enabled FROM sites'
   ).all<SiteRow>();
   return rows.results;
 }
@@ -150,6 +152,9 @@ export async function closeDay(env: Env, site: SiteRow, day: string): Promise<vo
     env.CORE.prepare('DELETE FROM stats_daily WHERE sid = ? AND day = ?').bind(site.sid, day),
     env.CORE.prepare('DELETE FROM sources_daily WHERE sid = ? AND day = ?').bind(site.sid, day),
     env.CORE.prepare('DELETE FROM goals_daily WHERE sid = ? AND day = ?').bind(site.sid, day),
+    env.CORE.prepare('DELETE FROM sessions_daily WHERE sid = ? AND day = ?').bind(site.sid, day),
+    env.CORE.prepare('DELETE FROM heat_daily WHERE sid = ? AND day = ?').bind(site.sid, day),
+    env.CORE.prepare('DELETE FROM scroll_daily WHERE sid = ? AND day = ?').bind(site.sid, day),
   ];
 
   if (exists) {
@@ -265,6 +270,48 @@ export async function closeDay(env: Env, site: SiteRow, day: string): Promise<vo
         site.sid, day, row.goal_id, row.channel, row.source || '', row.medium || '', row.campaign || '',
         row.converters || 0, row.conversions || 0, row.value_x100 || 0
       ));
+    }
+
+    if (site.sessions_enabled) {
+      const sessions = await sessionRollup(env, site.sid, ev, vis);
+      for (const row of sessions) {
+        statements.push(env.CORE.prepare(`
+          INSERT INTO sessions_daily (sid, day, dim, k, sessions, pv, bounces, dur_s_sum, dur_n)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(site.sid, day, row.dim, row.k || '', row.sessions, row.pv, row.bounces, row.dur_s_sum, row.dur_n));
+      }
+    }
+
+    const heatRows = await env.INGEST.prepare(`
+      SELECT path, name, COUNT(*) AS clicks
+      FROM ${ev}
+      WHERE sid = ? AND k = 1 AND name LIKE 'hm.%'
+      GROUP BY path, name
+    `).bind(site.sid).all<{ path: string; name: string; clicks: number }>();
+    for (const row of heatRows.results) {
+      const parts = row.name.split('.');
+      const gx = Number(parts[1]);
+      const gy = Number(parts[2]);
+      if (!Number.isInteger(gx) || !Number.isInteger(gy) || gx < 0 || gy < 0 || gx > 11 || gy > 11) continue;
+      statements.push(env.CORE.prepare(`
+        INSERT INTO heat_daily (sid, day, path, gx, gy, clicks)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).bind(site.sid, day, row.path, gx, gy, row.clicks || 0));
+    }
+
+    const scrollRows = await env.INGEST.prepare(`
+      SELECT path, name, COUNT(*) AS events
+      FROM ${ev}
+      WHERE sid = ? AND k = 1 AND name IN ('scroll.25', 'scroll.50', 'scroll.75', 'scroll.100')
+      GROUP BY path, name
+    `).bind(site.sid).all<{ path: string; name: string; events: number }>();
+    for (const row of scrollRows.results) {
+      const depth = Number(row.name.split('.')[1]);
+      if (![25, 50, 75, 100].includes(depth)) continue;
+      statements.push(env.CORE.prepare(`
+        INSERT INTO scroll_daily (sid, day, path, depth, events)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(site.sid, day, row.path, depth, row.events || 0));
     }
   }
 

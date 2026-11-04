@@ -1,12 +1,10 @@
 /**
- * Scheduled jobs: hourly rollups, optional nightly CORE export, optional weekly Slack digest.
+ * Scheduled jobs: hourly rollups, optional nightly CORE export.
+ * Weekly Slack digest removed — use the Wispstat MCP instead.
  */
 
 import type { Env } from '../lib/types';
 import { getConfig } from '../../wispstat.config';
-import { shiftDate } from '../lib/dates';
-import { getLocalDate } from '../lib/utils';
-import { digestText, type DigestStats } from './digest';
 import { listSites, runHourly } from './rollup';
 
 async function putState(env: Env, job: string, scope: string, value: string): Promise<void> {
@@ -14,79 +12,6 @@ async function putState(env: Env, job: string, scope: string, value: string): Pr
     `INSERT INTO rollup_state (job, scope, value) VALUES (?, ?, ?)
      ON CONFLICT(job, scope) DO UPDATE SET value = excluded.value`
   ).bind(job, scope, value).run();
-}
-
-async function statsForRange(env: Env, sid: number, from: string, to: string): Promise<DigestStats> {
-  const total = await env.CORE.prepare(`
-    SELECT COALESCE(SUM(visitors), 0) AS visitors, COALESCE(SUM(pv), 0) AS pv
-    FROM stats_daily
-    WHERE sid = ? AND dim = 'total' AND day >= ? AND day <= ?
-  `).bind(sid, from, to).first<{ visitors: number; pv: number }>();
-
-  const source = await env.CORE.prepare(`
-    SELECT channel, SUM(visitors) AS visitors
-    FROM sources_daily
-    WHERE sid = ? AND day >= ? AND day <= ?
-    GROUP BY channel
-    ORDER BY visitors DESC
-    LIMIT 1
-  `).bind(sid, from, to).first<{ channel: string }>();
-
-  const page = await env.CORE.prepare(`
-    SELECT k, SUM(pv) AS pv
-    FROM stats_daily
-    WHERE sid = ? AND dim = 'path' AND day >= ? AND day <= ?
-    GROUP BY k
-    ORDER BY pv DESC
-    LIMIT 1
-  `).bind(sid, from, to).first<{ k: string }>();
-
-  const goals = await env.CORE.prepare(`
-    SELECT COALESCE(SUM(conversions), 0) AS conversions, COALESCE(SUM(value_x100), 0) AS value_x100
-    FROM goals_daily
-    WHERE sid = ? AND day >= ? AND day <= ?
-  `).bind(sid, from, to).first<{ conversions: number; value_x100: number }>();
-
-  return {
-    visitors: total?.visitors || 0,
-    pv: total?.pv || 0,
-    topSource: source?.channel || 'Direct',
-    topPage: page?.k || '/',
-    conversions: goals?.conversions || 0,
-    revenue: (goals?.value_x100 || 0) / 100,
-  };
-}
-
-export async function runWeekly(env: Env, nowSec = Math.floor(Date.now() / 1000)): Promise<{ sent: number; skipped: boolean }> {
-  const config = getConfig(env);
-  if (!config.slackWebhookUrl) {
-    await putState(env, 'weekly', 'last', 'skipped:unconfigured');
-    return { sent: 0, skipped: true };
-  }
-
-  const sites = (await listSites(env)).filter((site) => site.digest_enabled);
-  let sent = 0;
-  for (const site of sites) {
-    const to = shiftDate(getLocalDate(nowSec, site.tz), -1);
-    const from = shiftDate(to, -6);
-    const prevTo = shiftDate(from, -1);
-    const prevFrom = shiftDate(prevTo, -6);
-    const current = await statsForRange(env, site.sid, from, to);
-    const previous = await statsForRange(env, site.sid, prevFrom, prevTo);
-    const body = digestText(site.name, current, previous);
-    const response = await fetch(config.slackWebhookUrl, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: body.text }),
-    });
-    if (!response.ok) {
-      await putState(env, 'weekly', `error:${site.sid}`, `http_${response.status}`);
-      continue;
-    }
-    sent += 1;
-  }
-  await putState(env, 'weekly', 'last', String(nowSec));
-  return { sent, skipped: false };
 }
 
 export async function runNightly(env: Env, nowSec = Math.floor(Date.now() / 1000)): Promise<{ status: string }> {
@@ -164,11 +89,7 @@ export async function runScheduled(cron: string, env: Env): Promise<void> {
     await runNightly(env);
     return;
   }
-  if (cron === config.schedules.weekly) {
-    await runWeekly(env);
-    return;
-  }
   console.log('Unhandled cron:', cron);
 }
 
-export { runHourly };
+export { runHourly, listSites };
