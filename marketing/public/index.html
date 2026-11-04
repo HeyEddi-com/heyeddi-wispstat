@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wispstat — cookie-free analytics on Cloudflare</title>
+    <meta
+      name="description"
+      content="Open-source, cookie-free web analytics on your Cloudflare Workers. MIT. Self-hosted. No banner theater."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css?v=beacon-3" />
+  </head>
+  <body class="page-home">
+    <a class="skip" href="#main">Skip to content</a>
+
+    <div class="beacon" aria-hidden="true">
+      <span class="beacon-glow"></span>
+      <span class="beacon-strip"></span>
+    </div>
+
+    <div class="shell">
+      <header class="top">
+        <a class="brand" href="/" aria-current="page">Wispstat</a>
+        <nav aria-label="Primary">
+          <a href="#install">Install</a>
+          <a href="/docs">Docs</a>
+          <a href="https://github.com/HeyEddi-com/heyeddi-wispstat">GitHub</a>
+          <a class="cta" href="https://heyeddi-wispstat.heyeddi.workers.dev">Open app</a>
+        </nav>
+      </header>
+
+      <main id="main">
+        <section class="hero">
+          <p class="brand-hero">Wispstat</p>
+          <h1>One beacon. No cookies.</h1>
+          <p class="lede">
+            Privacy-first analytics on Cloudflare Workers — open source (MIT),
+            self-hosted on your account.
+          </p>
+          <p class="actions">
+            <a class="cta primary" href="#install">How to install</a>
+            <a class="ghost" href="/docs">Read the docs</a>
+          </p>
+        </section>
+
+        <section id="install" class="band">
+          <p class="oss-mark">Open source · MIT</p>
+          <h2>Install on your Worker</h2>
+          <p class="band-lede">
+            You run the stack. We don’t see your traffic. Clone the repo, claim the
+            instance, paste one script tag.
+          </p>
+          <ul class="install-steps">
+            <li>
+              <span class="step-n" aria-hidden="true">01</span>
+              <div>
+                <strong>Deploy the Worker</strong>
+                <span
+                  >Use the Cloudflare Deploy button in the README, or
+                  <code>npm run setup</code> then <code>npm run deploy</code>.</span
+                >
+              </div>
+            </li>
+            <li>
+              <span class="step-n" aria-hidden="true">02</span>
+              <div>
+                <strong>Claim with SETUP_TOKEN</strong>
+                <span
+                  >Open your <code>*.workers.dev</code> URL, enter the token from
+                  setup, create owner email + password.</span
+                >
+              </div>
+            </li>
+            <li>
+              <span class="step-n" aria-hidden="true">03</span>
+              <div>
+                <strong>Add a site + paste the snippet</strong>
+                <span
+                  >Overview → Add a site (one domain root). Put this before
+                  <code>&lt;/body&gt;</code>:</span
+                >
+              </div>
+            </li>
+          </ul>
+          <pre><code>&lt;script defer
+  src="https://YOUR_WORKER/ws.js"
+  data-site="s_…"&gt;&lt;/script&gt;</code></pre>
+          <p class="note">
+            Demo instance (HeyEddi):
+            <code>https://heyeddi-wispstat.heyeddi.workers.dev/ws.js</code> —
+            <code>data-site</code> is public; it is not a secret.
+            Full guide: <a href="/docs#install">Docs → Install</a>.
+          </p>
+        </section>
+
+        <section id="why" class="band">
+          <h2>Why builders pick it</h2>
+          <p class="band-lede">One script. Your Cloudflare account. No cookie banner theater.</p>
+          <ul class="signals">
+            <li>
+              <strong>Cookie-free by default</strong>
+              Daily visitor hashing with rotating salts — no cross-site ID.
+            </li>
+            <li>
+              <strong>Forms stay private</strong>
+              Submit events never include field values.
+            </li>
+            <li>
+              <strong>Free-tier friendly</strong>
+              ~50k pageviews/day on Cloudflare Free is a realistic target.
+            </li>
+            <li>
+              <strong>Tiny + agent-ready</strong>
+              ≈2KB tracker · MCP server for read-only agent access.
+            </li>
+          </ul>
+        </section>
+
+        <section id="oss" class="band">
+          <p class="oss-mark">License</p>
+          <h2>Open source on purpose</h2>
+          <p class="band-lede">
+            MIT. Fork it, self-host it, audit the collector. The product is the Worker
+            you deploy — not a hosted black box.
+          </p>
+          <p class="actions">
+            <a
+              class="cta primary"
+              href="https://github.com/HeyEddi-com/heyeddi-wispstat"
+              >View source on GitHub</a
+            >
+            <a class="ghost" href="/docs">Operator docs</a>
+          </p>
+        </section>
+      </main>
+
+      <footer>
+        <p>
+          HeyEddi Wispstat · MIT ·
+          <a href="https://heyeddi.com">heyeddi.com</a>
+          ·
+          <a href="/docs">Docs</a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -18,6 +18,8 @@ We collect minimal, anonymized analytics data to understand how our website is u
 - **Base language** (e.g., `en`, `es`, `pt`). Never the full language list or region.
 - **Timestamps** (server time only)
 - **Custom event names** (e.g., "signup"), with optional numeric values in aggregate
+- **Aggregate click heat** (coarse viewport grid cell only, e.g. 12×12) and **scroll-depth milestones** (25/50/75/100%). No screenshots, no session replay, no raw click coordinates.
+- **Automatic interaction events** such as outbound link hosts, file download names, and form submit (path only — never form field values)
 
 ## What We Do NOT Collect
 
@@ -25,13 +27,14 @@ We explicitly do NOT collect:
 
 - ❌ **IP addresses** (processed in memory only, never stored)
 - ❌ **User-Agent strings** (parsed to categories, raw string never stored)
-- ❌ **Cookies, localStorage, sessionStorage, or IndexedDB** on your device
-- ❌ **Screen size, viewport, timezone, or hardware information**
+- ❌ **Cookies, localStorage, sessionStorage, or IndexedDB** on your device (unless you enable an optional consented mode with your own banner)
+- ❌ **Raw screen size, device pixel ratio, or exact click coordinates** (heat uses an ephemeral viewport grid index only)
 - ❌ **Full language lists, installed fonts, or plugins**
 - ❌ **Canvas, WebGL, or audio fingerprints**
-- ❌ **Client-side identifiers or cross-site/cross-device tracking**
+- ❌ **Client-side identifiers or cross-site/cross-device tracking** (default mode)
 - ❌ **Personal information** (emails, names, phone numbers, user IDs)
 - ❌ **Query strings** (which may contain sensitive parameters)
+- ❌ **Form field values**
 
 ## How We Identify "Visitors"
 

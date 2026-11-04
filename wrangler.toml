@@ -8,23 +8,23 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "CORE"
 database_name = "wispstat-core"
+database_id = "6906ae0c-5821-4e92-b927-15796e229647"
 migrations_dir = "migrations/core"
-# database_id = "" # Uncomment and fill during setup
 
 [[d1_databases]]
 binding = "INGEST"
 database_name = "wispstat-ingest"
+database_id = "39df2c67-ce87-49ef-be7c-e7b62eb2a644"
 migrations_dir = "migrations/ingest"
-# database_id = "" # Uncomment and fill during setup
 
 [[kv_namespaces]]
 binding = "SALTS"
-# id = "" # Uncomment and fill during setup
+id = "e36de2e66f764c8d981604027560a0e5"
 
-[[r2_buckets]]
-binding = "BACKUPS"
-bucket_name = "wispstat-backups"
-# Uncomment during setup if using R2 backups
+# Optional nightly CORE backups — enable after: npx wrangler r2 bucket create wispstat-backups
+# [[r2_buckets]]
+# binding = "BACKUPS"
+# bucket_name = "wispstat-backups"
 
 # Rate limiting (placeholder - actual binding configured via dashboard/CLI)
 # [[unsafe.bindings]]
@@ -36,34 +36,34 @@ bucket_name = "wispstat-backups"
 directory = "./dist/assets"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/e", "/t", "/a", "/api/*"]
+# This Wrangler only accepts a boolean. The Worker passes other paths to ASSETS.
+run_worker_first = true
 
-# Cron triggers (hourly, nightly, weekly)
+# Cron triggers (hourly, nightly). Weekly Slack digest removed — use MCP.
 [triggers]
 crons = [
   "5 * * * *",     # hourly: rollups + partition management
   "0 9 * * *",     # nightly: CORE backup to R2 (UTC; configurable)
-  "0 15 * * MON"   # weekly: digest (UTC; configurable)
 ]
 
-# Observability disabled on collector routes (privacy)
+# Workers Logs on for errors/debug; avoid shipping visitor payloads in custom logs.
+# Collector still returns 204 with no body; do not console.log beacons.
 [observability]
-enabled = false
+enabled = true
+head_sampling_rate = 1
 
 # Vars (non-secret configuration)
 [vars]
-# Optional: override base URL if not using request.url.origin
-# PUBLIC_BASE_URL = "https://your-instance.example.com"
+D1_CORE_DATABASE_ID = "6906ae0c-5821-4e92-b927-15796e229647"
+# Optional cookie/origin override. Default: request origin (workers.dev is fine).
+# PUBLIC_BASE_URL = "https://heyeddi-wispstat.heyeddi.workers.dev"
 
 DEFAULT_TZ = "UTC"
-AUTH_PROVIDERS = "local"  # "local" | "firebase" | "local,firebase"
+# App + API + /ws.js stay on *.workers.dev. Marketing is Firebase (wispstat.heyeddi.com).
 
 # Secrets (set via wrangler secret put or Deploy button)
 # SETUP_TOKEN - required for first-run claim
 # SESSION_SECRET - for local auth session tokens
 # TOKEN_KEY - for visit token encryption (v1.2)
-# FIREBASE_PROJECT_ID - if using Firebase auth
-# FIREBASE_WEB_CONFIG - JSON string, if using Firebase auth
-# SLACK_WEBHOOK_URL - optional, for weekly digest
 # CF_API_TOKEN - optional, for R2 backups
 # CF_ACCOUNT_ID - optional, for R2 backups

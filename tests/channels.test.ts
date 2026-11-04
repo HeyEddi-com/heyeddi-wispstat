@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { computeChannel, type ParsedSite } from '../src/lib/channels';
-import { CONSTANTS } from '../edgemetry.config';
+import { CONSTANTS } from '../wispstat.config';
 import type { BeaconPayload } from '../src/lib/types';
 
 const mockSite: ParsedSite = {

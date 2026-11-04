@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wispstat docs</title>
+    <meta
+      name="description"
+      content="Install, defaults, events, client shares, and security for open-source Wispstat on Cloudflare Workers."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css?v=beacon-3" />
+  </head>
+  <body class="page-docs">
+    <a class="skip" href="#main">Skip to content</a>
+
+    <div class="beacon" aria-hidden="true">
+      <span class="beacon-glow"></span>
+      <span class="beacon-strip"></span>
+    </div>
+
+    <div class="shell">
+      <header class="top">
+        <a class="brand" href="/">Wispstat</a>
+        <nav aria-label="Primary">
+          <a href="/#install">Install</a>
+          <a href="/docs" aria-current="page">Docs</a>
+          <a href="https://github.com/HeyEddi-com/heyeddi-wispstat">GitHub</a>
+          <a class="cta" href="https://heyeddi-wispstat.heyeddi.workers.dev">Open app</a>
+        </nav>
+      </header>
+
+      <main id="main">
+        <header class="docs-hero band" style="border-top: 0; padding-top: 2rem">
+          <p class="oss-mark">Official documentation · MIT open source</p>
+          <h1>Wispstat docs</h1>
+          <p class="band-lede">
+            Cookie-free analytics on your Cloudflare Worker. Pageviews, outbound links,
+            downloads, and form submits are automatic; goals and client shares are opt-in.
+          </p>
+        </header>
+
+        <div class="docs-layout">
+          <nav class="docs-toc" aria-label="On this page">
+            <p class="docs-toc-label">On this page</p>
+            <ul>
+              <li><a href="#install">Install</a></li>
+              <li><a href="#defaults">Defaults</a></li>
+              <li><a href="#attribution">Attribution</a></li>
+              <li><a href="#events">Custom events</a></li>
+              <li><a href="#mcp">MCP</a></li>
+              <li><a href="#share">Share</a></li>
+              <li><a href="#security">Security</a></li>
+              <li><a href="#budget">Data budget</a></li>
+            </ul>
+          </nav>
+
+          <div class="docs-panel docs-body">
+            <section id="install" aria-labelledby="install-title">
+              <h2 id="install-title">Install</h2>
+              <p class="section-body">
+                Deploy the Worker (README Deploy button or <code>npm run setup</code>), claim
+                with <code>SETUP_TOKEN</code>, then add a site with one domain root and paste
+                the tracker on hosts you want measured.
+              </p>
+              <ul class="install-steps">
+                <li>
+                  <span class="step-n" aria-hidden="true">01</span>
+                  <div>
+                    <strong>Create the site</strong>
+                    <span
+                      >Overview → Add a site. One domain (e.g. <code>example.com</code>) —
+                      that host and all subdomains under it.</span
+                    >
+                  </div>
+                </li>
+                <li>
+                  <span class="step-n" aria-hidden="true">02</span>
+                  <div>
+                    <strong>Paste the snippet</strong>
+                    <span>From Settings or the create response. Before <code>&lt;/body&gt;</code> is fine.</span>
+                    <pre><code>&lt;script defer
+  src="https://YOUR_WORKER/ws.js"
+  data-site="s_yourSiteIdHere"&gt;&lt;/script&gt;</code></pre>
+                  </div>
+                </li>
+                <li>
+                  <span class="step-n" aria-hidden="true">03</span>
+                  <div>
+                    <strong>Confirm Live</strong>
+                    <span>Open the site → Live. You should see pageviews after a hit.</span>
+                  </div>
+                </li>
+              </ul>
+              <p class="note"><code>data-site</code> is public HTML. It is an identifier, not a secret.</p>
+            </section>
+
+            <section id="defaults" aria-labelledby="defaults-title">
+              <h2 id="defaults-title">What logs by default</h2>
+              <p class="section-body">
+                Pageviews plus light auto-events. Disable autos with
+                <code>data-auto-events="false"</code>.
+              </p>
+              <ul class="plain-list">
+                <li>Pageview on load (unless <code>data-auto="false"</code>)</li>
+                <li>SPA route changes via <code>data-spa="auto"</code></li>
+                <li>Outbound · downloads · form submit (never field values)</li>
+                <li>Heat + scroll depth (off with <code>data-heatmap="false"</code>)</li>
+                <li>Signup / purchase / custom goals — fire <code>wispstat('event', …)</code> yourself</li>
+              </ul>
+              <p class="note">
+                Optional: <code>data-respect-dnt</code>, <code>data-exclude</code>,
+                <code>data-mask</code>, <code>data-hash-mode</code>, <code>data-file-types</code>.
+              </p>
+            </section>
+
+            <section id="attribution" aria-labelledby="attribution-title">
+              <h2 id="attribution-title">Attribution</h2>
+              <p class="section-body">
+                First pageview of a load captures <code>utm_*</code>, or <code>ref</code>/<code>via</code>,
+                plus external referrer. That becomes same-day first-touch. CRM handoff:
+                <code>wispstat('attribution')</code>.
+              </p>
+            </section>
+
+            <section id="events" aria-labelledby="events-title">
+              <h2 id="events-title">Custom events</h2>
+              <p class="section-body">
+                Names ≤64 chars, charset <code>[a-z0-9_:.-]</code>. Pair with a Goal of kind
+                event for conversion rates.
+              </p>
+              <ul class="cmd-list">
+                <li>
+                  <code>wispstat('pageview')</code>
+                  <strong>Manual pageview</strong>
+                  <span>Useful if auto pageviews are off.</span>
+                </li>
+                <li>
+                  <code>wispstat('event', 'signup')</code>
+                  <strong>Named event</strong>
+                  <span>Pair with a Goal for conversion rates.</span>
+                </li>
+                <li>
+                  <code>wispstat('event', 'purchase', { value: 49.9 })</code>
+                  <strong>Event + value</strong>
+                  <span>Revenue in the site currency.</span>
+                </li>
+              </ul>
+            </section>
+
+            <section id="mcp" aria-labelledby="mcp-title">
+              <h2 id="mcp-title">MCP</h2>
+              <p class="section-body">
+                Agents talk to your Worker through a thin stdio MCP server in
+                <code>mcp/</code> — read API key only. No Slack digest, no Firebase.
+              </p>
+              <ul class="install-steps">
+                <li>
+                  <span class="step-n" aria-hidden="true">01</span>
+                  <div>
+                    <strong>Create a read API key</strong>
+                    <span>Site → Settings → API keys. Empty origins = any. Prefer a <strong>read</strong> key for agents.</span>
+                  </div>
+                </li>
+                <li>
+                  <span class="step-n" aria-hidden="true">02</span>
+                  <div>
+                    <strong>Install MCP deps</strong>
+                    <span><code>cd mcp && npm install</code></span>
+                  </div>
+                </li>
+                <li>
+                  <span class="step-n" aria-hidden="true">03</span>
+                  <div>
+                    <strong>Point your MCP client</strong>
+                    <span>Cursor (or any stdio MCP host) example:</span>
+                    <pre><code>{
+  "mcpServers": {
+    "wispstat": {
+      "command": "node",
+      "args": ["/ABS/PATH/heyeddi-wispstat/mcp/src/index.js"],
+      "env": {
+        "WISPSTAT_BASE_URL": "https://YOUR_WORKER",
+        "WISPSTAT_API_KEY": "wsk_s_…_…"
+      }
+    }
+  }
+}</code></pre>
+                  </div>
+                </li>
+              </ul>
+              <p class="section-body" style="margin-top: 1rem">Tools:</p>
+              <ul class="plain-list">
+                <li><code>wispstat_budget</code> — today’s write/request budget estimate</li>
+                <li><code>wispstat_summary</code> — site KPIs for a range</li>
+                <li><code>wispstat_sources</code> — channels / sources</li>
+                <li><code>wispstat_live</code> — last ~30 minutes</li>
+                <li><code>wispstat_visits</code> — filtered same-day journeys</li>
+                <li><code>wispstat_visit_timeline</code> — one visitor-hash timeline</li>
+                <li><code>wispstat_heatmap</code> — aggregate click grid + scroll depth</li>
+              </ul>
+              <p class="note">
+                <code>site_id</code> is optional when the key embeds it (<code>wsk_&lt;siteId&gt;_…</code>).
+                Details: <code>mcp/README.md</code> in the repo. Keep API keys out of git.
+              </p>
+            </section>
+
+            <section id="share" aria-labelledby="share-title">
+              <h2 id="share-title">Share with a client</h2>
+              <p class="section-body">
+                Site → Settings → Share with a client. Read-only summary via link or iframe.
+                No login for them. Treat the URL like a password; revoke when done.
+              </p>
+            </section>
+
+            <section id="security" aria-labelledby="security-title">
+              <h2 id="security-title">Security</h2>
+              <ul class="plain-list">
+                <li>Visitors: no cookies in default mode; daily hashed IDs; one domain root + subdomains.</li>
+                <li>Forms: submit events never include field values.</li>
+                <li>You: email/password on your Worker; keep <code>SETUP_TOKEN</code> private.</li>
+                <li>Clients: share links only see that site’s rolled-up numbers.</li>
+              </ul>
+              <p class="section-body" style="margin-top: 1rem">
+                Found a bug in Wispstat? Report it <strong>privately</strong> to
+                <a href="mailto:security@heyeddi.com">security@heyeddi.com</a>
+                — do not post exploit details in public issues. Include impact and
+                repro on a throwaway Worker; redact tokens. Full policy:
+                <a href="https://github.com/HeyEddi-com/heyeddi-wispstat/blob/main/SECURITY.md"
+                  >SECURITY.md</a
+                >
+                (secure reporting steps + self-host checklist).
+              </p>
+            </section>
+
+            <section id="budget" aria-labelledby="budget-title">
+              <h2 id="budget-title">Data budget</h2>
+              <p class="section-body">
+                Overview estimates Cloudflare Free usage today (writes and requests vs ~100k/day
+                caps). Counts rise with real pageviews and events only.
+              </p>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <p>
+          HeyEddi Wispstat · MIT ·
+          <a href="/">Home</a>
+          ·
+          <a href="https://github.com/HeyEddi-com/heyeddi-wispstat">Source</a>
+        </p>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var links = document.querySelectorAll(".docs-toc a");
+        var ids = Array.prototype.map.call(links, function (a) {
+          return a.getAttribute("href").slice(1);
+        });
+        function sync() {
+          var current = ids[0];
+          for (var i = 0; i < ids.length; i++) {
+            var el = document.getElementById(ids[i]);
+            if (el && el.getBoundingClientRect().top - 96 <= 0) current = ids[i];
+          }
+          links.forEach(function (a) {
+            var on = a.getAttribute("href") === "#" + current;
+            if (on) a.setAttribute("aria-current", "location");
+            else a.removeAttribute("aria-current");
+          });
+        }
+        window.addEventListener("scroll", sync, { passive: true });
+        sync();
+      })();
+    </script>
+  </body>
+</html>

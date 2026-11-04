@@ -3,7 +3,7 @@
  */
 
 import channelsJson from '../../channels.json';
-import { CONSTANTS } from '../../edgemetry.config';
+import { CONSTANTS } from '../../wispstat.config';
 import type { BeaconPayload } from './types';
 
 interface ChannelMap {
@@ -67,7 +67,7 @@ export function computeChannel(
   const utm_content = payload.ux || null;
   const utm_term = payload.ut || null;
   
-  let source: string | null = utm_source;
+  const source: string | null = utm_source;
   let ref_host: string | null = null;
   
   // 1. Check utm_medium patterns (priority)

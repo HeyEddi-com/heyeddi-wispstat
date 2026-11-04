@@ -3,7 +3,7 @@
  */
 
 import type { Env } from '../lib/types';
-import { getConfig, CONSTANTS } from '../../edgemetry.config';
+import { getConfig, CONSTANTS } from '../../wispstat.config';
 import { BRANDING } from '../../branding.config';
 import { generateToken, errorResponse } from '../lib/utils';
 

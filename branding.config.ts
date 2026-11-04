@@ -2,9 +2,7 @@
  * Branding & Naming Configuration
  * 
  * SINGLE SOURCE OF TRUTH for product naming.
- * When the final name is decided, update only this file.
- * 
- * Current status: Using neutral placeholder pending rename decision.
+ * Product name: HeyEddi Wispstat.
  */
 
 export const BRANDING = {

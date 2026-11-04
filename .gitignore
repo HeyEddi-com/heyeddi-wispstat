@@ -14,3 +14,10 @@ coverage/
 # Build outputs
 dashboard/dist/
 tracker/dist/
+
+# Firebase local cache
+marketing/.firebase/
+marketing/node_modules/
+
+# Visual audit binaries (keep design.md)
+.heyeddi/audits/

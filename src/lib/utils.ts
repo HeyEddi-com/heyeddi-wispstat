@@ -2,7 +2,7 @@
  * Utility functions
  */
 
-import { CONSTANTS } from '../../edgemetry.config';
+import { CONSTANTS } from '../../wispstat.config';
 
 /**
  * Generate a Crockford base32 site ID
@@ -162,7 +162,7 @@ export function normalizeUtm(value: string | undefined, maxLength: number): stri
 /**
  * Validate event name
  */
-const EVENT_NAME_CHARSET = /^[a-z0-9_:.\-]+$/;
+const EVENT_NAME_CHARSET = /^[a-z0-9_:.-]+$/;
 
 export function normalizeEventName(name: string | undefined, maxLength: number): string | null {
   if (!name) return null;

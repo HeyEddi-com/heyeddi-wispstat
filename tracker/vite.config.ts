@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 export default defineConfig({
@@ -7,9 +6,9 @@ export default defineConfig({
     outDir: '../dist/assets',
     emptyOutDir: false,
     lib: {
-      entry: resolve(__dirname, 'em.ts'),
+      entry: resolve(__dirname, 'ws.ts'),
       name: 'wispstat',
-      fileName: 'ws',
+      fileName: () => 'ws.js',
       formats: ['iife'],
     },
     rollupOptions: {

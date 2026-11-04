@@ -17,6 +17,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*", "branding.config.ts", "edgemetry.config.ts", "scripts/**/*", "tests/**/*"],
+  "include": ["src/**/*", "branding.config.ts", "wispstat.config.ts", "scripts/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist", ".wrangler"]
 }

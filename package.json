@@ -10,22 +10,26 @@
     "deploy": "wrangler d1 migrations apply CORE --remote && wrangler d1 migrations apply INGEST --remote && wrangler deploy",
     "build": "npm run build:dashboard && npm run build:tracker",
     "build:dashboard": "cd dashboard && npm run build",
-    "build:tracker": "cd tracker && npm run build",
+    "build:tracker": "cd tracker && npm run build && npm run build:consent",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "setup": "tsx scripts/setup.mjs",
-    "smoke": "tsx scripts/smoke.mjs",
-    "owner:reset": "tsx scripts/owner-reset.mjs"
+    "setup": "node scripts/setup.mjs",
+    "setup:prepare": "node scripts/setup.mjs --no-deploy --skip-r2",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:mcp": "node scripts/smoke-mcp.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "predeploy": "node scripts/predeploy.mjs",
+    "owner:reset": "node scripts/owner-reset.mjs"
   },
   "dependencies": {
     "hono": "^4.6.3"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.5.0",
-    "@cloudflare/workers-types": "^4.20241004.0",
+    "@cloudflare/workers-types": "^5.20261103.1",
     "@types/node": "^22.7.4",
     "@typescript-eslint/eslint-plugin": "^8.8.0",
     "@typescript-eslint/parser": "^8.8.0",
@@ -34,7 +38,7 @@
     "typescript": "^5.6.2",
     "vite": "^5.4.8",
     "vitest": "^2.1.2",
-    "wrangler": "^3.78.0"
+    "wrangler": "^4.156.2"
   },
   "engines": {
     "node": ">=18.0.0"

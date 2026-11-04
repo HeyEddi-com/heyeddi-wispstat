@@ -1,0 +1,322 @@
+{
+  "index_version": 1,
+  "generated_at": "2026-11-04T04:56:21Z",
+  "generator": "heyeddi-auto-sync-minimal",
+  "skill_count": 39,
+  "installed_count": 39,
+  "skills": [
+    {
+      "name": "aura-design-tokens",
+      "folder": "aura-design-tokens",
+      "description": "Synchronizes PrimeVue Aura, Quasar, and custom CSS through CSS custom properties. Use for themes, color, surfaces, radii, and dark mode. No Tailwind utility classes and no raw hex in components.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@aura-design-tokens"
+    },
+    {
+      "name": "backend-type-bridger",
+      "folder": "backend-type-bridger",
+      "description": "Syncs a local FastAPI OpenAPI file to TypeScript types and reads Firestore schema hints. Use when writing Vue composables against FastAPI or Firebase backends.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@backend-type-bridger"
+    },
+    {
+      "name": "cli-interface-design",
+      "folder": "cli-interface-design",
+      "description": "Designs readable interactive CLIs with @clack/prompts, consola, and picocolors. After writing the script, run it and inspect ANSI stdout for alignment. Does not render HTML, Canvas, or a browser screenshot.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@cli-interface-design"
+    },
+    {
+      "name": "composable-patterns",
+      "folder": "composable-patterns",
+      "description": "Provides FastAPI JWT and Firebase client composable patterns for consistent auth and data layers. Context-first skill: use when writing or reviewing Vue composables for API access.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@composable-patterns"
+    },
+    {
+      "name": "dart-type-bridger",
+      "folder": "dart-type-bridger",
+      "description": "Syncs a local FastAPI OpenAPI file to Dart model stubs and reads Firestore schema hints for Flutter projects. Use when writing Flutter repositories against FastAPI or Firebase backends.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@dart-type-bridger"
+    },
+    {
+      "name": "design-handoff-flutter",
+      "folder": "design-handoff-flutter",
+      "description": "Implements Flutter screens from designer screenshots and handoff notes using Material 3. Two-pass workflow: mockup-brief with Implementation spec, then AppShell + route screens. Use when approved mockups exist for a HeyEddi Flutter app.",
+      "version": "1.1.0",
+      "installed": true,
+      "at": "@design-handoff-flutter"
+    },
+    {
+      "name": "design-system-generalizer",
+      "folder": "design-system-generalizer",
+      "description": "Scans token and component usage patterns from a golden reference page and diffs violations on other routes. Use when spreading a well-built page's patterns across the app in PR-sized chunks.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@design-system-generalizer"
+    },
+    {
+      "name": "engineering-excellence",
+      "folder": "engineering-excellence",
+      "description": "ALWAYS-ON: audits plans and code for KISS, YAGNI, DRY, SOLID, and testability; maintains .heyeddi/docs/engineering/. Use on every chat that plans or changes code, before merge, refactor, ADRs, or reuse-catalog work. Not for visual UX (ux-fl",
+      "version": "1.1.0",
+      "installed": true,
+      "at": "@engineering-excellence"
+    },
+    {
+      "name": "fancy-ui-craft",
+      "folder": "fancy-ui-craft",
+      "description": "Depth for a few Vue 3 surfaces: cursor spotlight, frosted glass, one TresJS accent, and a local dotLottie state. Use on a hero, a featured card, or an empty state. Do not apply it to tables, forms, or every card. No React, no Tailwind.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@fancy-ui-craft"
+    },
+    {
+      "name": "flutter-engineering",
+      "folder": "flutter-engineering",
+      "description": "Ensures HeyEddi Flutter projects have the right engineering stack: Flutter (Riverpod, go_router, Material 3), FastAPI backend, or Firebase tooling. Audits gaps, scaffolds as needed, runs flutter test/analyze, documents local dev servers. Us",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@flutter-engineering"
+    },
+    {
+      "name": "flutter-patterns",
+      "folder": "flutter-patterns",
+      "description": "Provides FastAPI Dio and Firebase client patterns for Flutter: repositories, Riverpod providers, auth. Context-first skill; use when writing or reviewing Dart data layers for HeyEddi Flutter apps.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@flutter-patterns"
+    },
+    {
+      "name": "heyeddi",
+      "folder": "heyeddi",
+      "description": "ALWAYS-ON router named @heyeddi. Discovers skills, syncs .heyeddi/, and decides what to run. Design talk goes to @taste-penpot first (look, @zcubekr/penpot-mcp-server only) then @heyeddi-design. A redesign or from-scratch request analyzes t",
+      "version": "3.4.0",
+      "installed": true,
+      "at": "@heyeddi"
+    },
+    {
+      "name": "heyeddi-ci-config",
+      "folder": "heyeddi-ci-config",
+      "description": "Author or update eddi-ci.yaml for HeyEddi CI and Spot runners. Prefer GHA + HEYEDDI_RUNS_ON for existing workflows; sealed pipeline only when opted in. Loads the live policy contract from cihook.heyeddi.com so knobs stay current.",
+      "version": "1.2.0",
+      "installed": true,
+      "at": "@heyeddi-ci-config"
+    },
+    {
+      "name": "heyeddi-ci-fails",
+      "folder": "heyeddi-ci-fails",
+      "description": "Diagnose and fix failing GitHub Checks on PR work by default: fetch evidence, write ephemeral ci-fails report, apply fixes, verify locally. Run automatically \u2014 do not wait for user to ask. Never merge without authorize merge. Companion to /",
+      "version": "1.1.0",
+      "installed": true,
+      "at": "@heyeddi-ci-fails"
+    },
+    {
+      "name": "heyeddi-ci-guide",
+      "folder": "heyeddi-ci-guide",
+      "description": "Reference for HeyEddi CI commands, authorize-merge auth, feedback via debate + support@, and Spot runners (GHA overflow + sealed pipeline). Use when asking how to work with HeyEddi CI.",
+      "version": "1.1.0",
+      "installed": true,
+      "at": "@heyeddi-ci-guide"
+    },
+    {
+      "name": "heyeddi-ci-runners",
+      "folder": "heyeddi-ci-runners",
+      "description": "Configure HeyEddi Spot runners \u2014 prefer GHA overflow/always with the HEYEDDI_RUNS_ON hook; author sealed eddi-ci.yaml pipeline jobs only for no-GHA or niche checks. Use when wiring runners, pipeline YAML, or Spot CI.",
+      "version": "2.0.0",
+      "installed": true,
+      "at": "@heyeddi-ci-runners"
+    },
+    {
+      "name": "heyeddi-design",
+      "folder": "heyeddi-design",
+      "description": "Product design partner for @taste-penpot. Use on design, UI, look, polish, or handoff AFTER taste locks identity (identity gate: \u22653 options when unset) and the look. Records personas, route job, and tokens into .heyeddi/design.md, then hand",
+      "version": "2.9.0",
+      "installed": true,
+      "at": "@heyeddi-design"
+    },
+    {
+      "name": "heyeddi-handoff",
+      "folder": "heyeddi-handoff",
+      "description": "Implements screens from briefs, wireframes, or designer screenshots. Vue 3 with Quasar shells and PrimeVue Aura. Two-pass for PNGs; single-pass from confirmed brief.md. Chains to @vue-design-system and @visual-auditor.",
+      "version": "1.4.0",
+      "installed": true,
+      "at": "@heyeddi-handoff"
+    },
+    {
+      "name": "heyeddi-intake",
+      "folder": "heyeddi-intake",
+      "description": "Translates vague user prompts into HeyEddi product docs (personas, route intent, voice), route-specific handoff artifacts (wireframes, user mockups, or briefs), and skill-routing under .heyeddi/. Use first on new projects before @heyeddi-de",
+      "version": "1.3.0",
+      "installed": true,
+      "at": "@heyeddi-intake"
+    },
+    {
+      "name": "heyeddi-local-first",
+      "folder": "heyeddi-local-first",
+      "description": "ALWAYS-ON local-first gate for every agent. Prepare Terraform and config locally. terraform plan is allowed and must be summarized as a warning. classify_command.py --check exits 1 on terraform apply and other live cloud mutations. Use on a",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@heyeddi-local-first"
+    },
+    {
+      "name": "heyeddi-orchestrator",
+      "folder": "heyeddi-orchestrator",
+      "description": "Deprecated alias for @heyeddi. If this skill loads, stop and follow skills/heyeddi/SKILL.md (installed as @heyeddi). Same router: design talk goes to @taste-penpot then @heyeddi-design; Vue UI follows @vue-design-system.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@heyeddi-orchestrator"
+    },
+    {
+      "name": "heyeddi-pr-respond",
+      "folder": "heyeddi-pr-respond",
+      "description": "Respond to all PR review feedback \u2014 human reviewers, HeyEddi CI, inline threads. Auto-fix, commit+push, in-thread replies, CI check first \u2014 never ask before fixing or posting. One skill for every review source.",
+      "version": "2.2.0",
+      "installed": true,
+      "at": "@heyeddi-pr-respond"
+    },
+    {
+      "name": "heyeddi-pr-review",
+      "folder": "heyeddi-pr-review",
+      "description": "Reviews submitted PRs using only committed changes: product fit, docs drift, engineering quality, test coverage, and pre-merge gate. Use when approving a PR, doing reviewer QA, or self-checking before requesting review. Not for replying to ",
+      "version": "1.1.0",
+      "installed": true,
+      "at": "@heyeddi-pr-review"
+    },
+    {
+      "name": "heyeddi-product",
+      "folder": "heyeddi-product",
+      "description": "Product leadership: user stories, acceptance criteria, backlog, holistic reviews. Verifies the product works and is useful; delegates UX flow, design critique, visual contrast, and engineering audits; synthesizes plans and change recommenda",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@heyeddi-product"
+    },
+    {
+      "name": "heyeddi-setup",
+      "folder": "heyeddi-setup",
+      "description": "ALWAYS-ON prefs gate: ensures `.heyeddi/stack.json` holds git/env and agent prefs. Incomplete prefs fail git/CI/commit/push assumptions until verify_setup --check passes. Asks env layout, custom workflow escape hatch, worktrees, commit/push",
+      "version": "1.2.0",
+      "installed": true,
+      "at": "@heyeddi-setup"
+    },
+    {
+      "name": "layout-morph",
+      "folder": "layout-morph",
+      "description": "Shared-element morphs in Vue 3 with Quasar v-morph. Use when a card, row, or chip expands into its detail view in the same screen. GSAP Flip is only the fallback when the two states are not in one view. No React, no Tailwind.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@layout-morph"
+    },
+    {
+      "name": "motion-physics",
+      "folder": "motion-physics",
+      "description": "Spring micro-interactions for Vue 3 using @vueuse/motion. Use when introducing cards, dialogs, lists, hover, or press feedback. Forbids linear spatial easing, long staggers, and looping motion unless a loading state was requested.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@motion-physics"
+    },
+    {
+      "name": "no-duplicate-ui",
+      "folder": "no-duplicate-ui",
+      "description": "Scans Vue files for duplicate component names and similar template overlap. Use during PR review or when refactoring UI to enforce DRY architecture.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@no-duplicate-ui"
+    },
+    {
+      "name": "pre-merge-gate",
+      "folder": "pre-merge-gate",
+      "description": "Runs pre-merge checks (setup prefs + backend + frontend + engineering excellence + optional UI audit). Any FAIL exits 1 (hard stop). Use when QA approves a PR or before merge to main.",
+      "version": "1.3.0",
+      "installed": true,
+      "at": "@pre-merge-gate"
+    },
+    {
+      "name": "primevue-aura",
+      "folder": "primevue-aura",
+      "description": "PrimeVue with the Aura preset for dense Vue 3 data grids, filters, complex form controls, and overlays. No Tailwind. Use for DataTable, TreeSelect, menus, badges, and the Quasar plus PrimeVue bootstrap order.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@primevue-aura"
+    },
+    {
+      "name": "primevue-openprops-architect",
+      "folder": "primevue-openprops-architect",
+      "description": "Compatibility name for Vue UI checks. Follow @vue-design-system (Quasar, PrimeVue Aura, spring motion, CSS tokens). Do not add OpenProps, Tailwind, or React. Runs vue-tsc and stylelint when available.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@primevue-openprops-architect"
+    },
+    {
+      "name": "project-engineering",
+      "folder": "project-engineering",
+      "description": "Ensures HeyEddi projects have the right engineering stack: Vue (Vite/Vitest), FastAPI backend, or Firebase tooling. Audits gaps, scaffolds as needed, installs deps, runs tests, documents local dev servers. Use when the repo is thin or befor",
+      "version": "1.1.0",
+      "installed": true,
+      "at": "@project-engineering"
+    },
+    {
+      "name": "quasar-foundation",
+      "folder": "quasar-foundation",
+      "description": "Quasar application frames, drawers, mobile gestures, and Capacitor or Tauri shells for Vue 3. Use for headers, footers, navigation, pull-to-refresh, bottom sheets, and quasar build targets. Not for data tables or CLI.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@quasar-foundation"
+    },
+    {
+      "name": "taste-penpot",
+      "folder": "taste-penpot",
+      "description": "General design skill. ALWAYS use with @heyeddi-design on any design, UI, look, or polish request. Owns the look in one PLAN \u2192 ACT \u2192 CRITIQUE pass: subject, tokens, anti-slop. When no style/identity is pinned, MUST present \u22653 project-grounde",
+      "version": "1.3.0",
+      "installed": true,
+      "at": "@taste-penpot"
+    },
+    {
+      "name": "ux-flow-auditor",
+      "folder": "ux-flow-auditor",
+      "description": "Traces user task flows with Playwright: click depth, step success, friction: and writes reports to .heyeddi/docs/ux-flows/. Use when measuring ease of use, clicks to complete a task, or onboarding friction. Not for static visual critique (u",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@ux-flow-auditor"
+    },
+    {
+      "name": "verify-build",
+      "folder": "verify-build",
+      "description": "Runs npm run build to catch Vite/Rollup failures before merge. Use when validating frontend changes or in CI pre-merge loops.",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@verify-build"
+    },
+    {
+      "name": "visual-auditor",
+      "folder": "visual-auditor",
+      "description": "ALWAYS use after design/implement for screenshot QA: capture, contrast, fix, document. Mandatory after handoff. Fast widths 375/768/1440; before flagship done use --preset done (375/430/768/1024/1440/1920). Auto-fix \u2014 never report-only unle",
+      "version": "3.2.0",
+      "installed": true,
+      "at": "@visual-auditor"
+    },
+    {
+      "name": "visual-verification",
+      "folder": "visual-verification",
+      "description": "Visual self-correction for Vue UI through the Playwright MCP. After a layout or dashboard change, screenshot the Vite dev server and fix overlap, wrap, padding, and unstyled type before done. Uses browser_navigate, browser_resize, and brows",
+      "version": "1.0.0",
+      "installed": true,
+      "at": "@visual-verification"
+    },
+    {
+      "name": "vue-design-system",
+      "folder": "vue-design-system",
+      "description": "Routes Vue 3 UI and CLI work to Quasar shells, PrimeVue Aura, spring motion, shared-element morphs, depth effects, CSS tokens, visual verification, or terminal UI. No React, no Tailwind, no Bootstrap. GUI work ends in a Playwright MCP scree",
+      "version": "1.0.1",
+      "installed": true,
+      "at": "@vue-design-system"
+    }
+  ],
+  "note": "Minimal index from install-tree SKILL.md scan. Run @heyeddi sync for full catalog."
+}

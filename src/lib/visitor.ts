@@ -2,7 +2,7 @@
  * Visitor hash computation
  */
 
-import { CONSTANTS } from '../../edgemetry.config';
+import { CONSTANTS } from '../../wispstat.config';
 import { sha256 } from './utils';
 
 /**

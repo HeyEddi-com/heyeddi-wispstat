@@ -1,0 +1,10 @@
+{
+  "name": "wispstat-marketing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OSS marketing site for HeyEddi Wispstat (Firebase Hosting)",
+  "scripts": {
+    "dev": "python3 -m http.server 8788 --directory public",
+    "deploy": "GOOGLE_CLOUD_QUOTA_PROJECT=heyeddi-b7e3c firebase deploy --only hosting:wispstat --project heyeddi-b7e3c"
+  }
+}
