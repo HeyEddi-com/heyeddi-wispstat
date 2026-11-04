@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "heyeddi-b7e3c"
+  },
+  "targets": {
+    "heyeddi-b7e3c": {
+      "hosting": {
+        "wispstat": ["wispstat"]
+      }
+    }
+  }
+}

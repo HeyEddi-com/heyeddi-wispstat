@@ -1,0 +1,2 @@
+# Deprecated — marketing moved to Firebase Hosting (see firebase.json / README.md).
+# Kept empty so old `wrangler pages` habits do not accidentally redeploy here.
