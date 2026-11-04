@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:consent": "vite build --config vite.consent.config.ts",
     "dev": "vite build --watch"
   },
   "devDependencies": {
