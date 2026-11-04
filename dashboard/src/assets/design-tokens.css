@@ -1,0 +1,209 @@
+:root {
+  --app-bg: #0b1220;
+  --app-bg-glow: #122036;
+  --app-surface: #121a2b;
+  --app-surface-2: #182235;
+  --app-text: #e8eef5;
+  --app-text-muted: #8b9bb4;
+  --app-accent: #3ddc97;
+  --app-accent-dim: #1fa86a;
+  --app-accent-soft: color-mix(in srgb, #3ddc97 16%, transparent);
+  --app-border: #243049;
+  --app-danger: #ff6b6b;
+  --app-ok: #3ddc97;
+  --app-font-display: "Space Grotesk", system-ui, sans-serif;
+  --app-font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --app-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --app-radius: 10px;
+  --app-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --app-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--app-font-body);
+  color: var(--app-text);
+  background:
+    radial-gradient(1200px 600px at 12% -10%, var(--app-bg-glow), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, var(--app-accent) 8%, transparent), transparent 50%),
+    var(--app-bg);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--app-accent);
+  text-decoration: none;
+  transition: color 160ms var(--app-ease);
+}
+
+a:hover {
+  color: color-mix(in srgb, var(--app-accent) 80%, white);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--app-font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.card {
+  background: linear-gradient(180deg, var(--app-surface-2), var(--app-surface));
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  padding: 1.25rem 1.35rem;
+  margin: 1rem 0;
+  box-shadow: var(--app-shadow);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.toolbar,
+.subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+
+.subnav a {
+  color: var(--app-text-muted);
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.92rem;
+}
+
+.subnav a.router-link-active,
+.subnav a.router-link-exact-active {
+  color: var(--app-bg);
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--app-text-muted);
+  margin: 0.65rem 0;
+}
+
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  margin-top: 0.35rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--app-bg) 70%, black);
+  color: var(--app-text);
+  font: inherit;
+  transition: border-color 160ms var(--app-ease), box-shadow 160ms var(--app-ease);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-accent-soft);
+}
+
+button {
+  padding: 0.65rem 1.1rem;
+  background: var(--app-accent);
+  color: #062116;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--app-font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: transform 160ms var(--app-ease), filter 160ms var(--app-ease);
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.link {
+  background: none;
+  color: var(--app-text-muted);
+  padding: 0;
+  font-family: var(--app-font-body);
+  font-weight: 500;
+}
+
+button.link:hover {
+  color: var(--app-text);
+  transform: none;
+  filter: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  overflow: hidden;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--app-border);
+}
+
+th {
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.error {
+  color: var(--app-danger);
+}
+
+.ok {
+  color: var(--app-ok);
+  word-break: break-all;
+  font-family: var(--app-font-mono);
+  font-size: 0.85rem;
+}
+
+.mono {
+  font-family: var(--app-font-mono);
+}
