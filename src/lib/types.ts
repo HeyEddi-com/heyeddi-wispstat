@@ -18,10 +18,6 @@ export interface Env {
   // Optional
   PUBLIC_BASE_URL?: string;
   DEFAULT_TZ?: string;
-  AUTH_PROVIDERS?: string;
-  FIREBASE_PROJECT_ID?: string;
-  FIREBASE_WEB_CONFIG?: string;
-  SLACK_WEBHOOK_URL?: string;
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
   D1_CORE_DATABASE_ID?: string;
@@ -39,6 +35,7 @@ export interface Site {
   ingest_paused: boolean;
   digest_enabled: boolean;
   sessions_enabled: boolean;
+  upgrade_direct: boolean;
   consent_mode: boolean;
   created_at: number;
 }
@@ -77,6 +74,8 @@ export interface BeaconPayload {
   ut?: string;      // utm_term
   ux?: string;      // utm_content
   rf?: string;      // ref/via fallback
+  props?: Record<string, unknown>; // v1.3 capped props
+  cid?: string;     // v1.4 consented first-party id (hex)
 }
 
 export interface VisitorAttrs {

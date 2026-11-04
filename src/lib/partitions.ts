@@ -31,6 +31,7 @@ export function partitionTables(suffix: string): { ev: string; vis: string } {
 
 export async function ensurePartition(db: D1Database, suffix: string): Promise<void> {
   const { ev, vis } = partitionTables(suffix);
+  const idem = `idem_${suffix}`;
   await db.batch([
     db.prepare(`
       CREATE TABLE IF NOT EXISTS ${ev} (
@@ -44,7 +45,10 @@ export async function ensurePartition(db: D1Database, suffix: string): Promise<v
         nv INTEGER NOT NULL DEFAULT 0,
         goal_id INTEGER,
         value_x100 INTEGER,
-        src INTEGER NOT NULL DEFAULT 0
+        src INTEGER NOT NULL DEFAULT 0,
+        p1 TEXT,
+        p2 TEXT,
+        p3 TEXT
       )
     `),
     db.prepare(`
@@ -68,7 +72,22 @@ export async function ensurePartition(db: D1Database, suffix: string): Promise<v
         PRIMARY KEY (sid, vh)
       ) WITHOUT ROWID
     `),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS ${idem} (
+        sid INTEGER NOT NULL,
+        idem TEXT NOT NULL,
+        PRIMARY KEY (sid, idem)
+      ) WITHOUT ROWID
+    `),
   ]);
+  // Best-effort column add for partitions created before p1..p3 existed
+  for (const col of ['p1', 'p2', 'p3']) {
+    try {
+      await db.prepare(`ALTER TABLE ${ev} ADD COLUMN ${col} TEXT`).run();
+    } catch {
+      /* already present */
+    }
+  }
 }
 
 export async function listEventPartitions(db: D1Database): Promise<string[]> {

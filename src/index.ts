@@ -5,9 +5,13 @@
 import { Hono } from 'hono';
 import type { Env } from './lib/types';
 import { handleCollector } from './collector';
+import { handleAttribution } from './collector/attribution';
+import { handleVisitToken } from './collector/token';
+import { handleForget } from './collector/forget';
 import { handleClaim, handleLogin, handleLogout } from './auth/local';
 import { getConfig } from '../wispstat.config';
 import { registerApi } from './api/routes';
+import { handleServerEvent } from './api/server-events';
 import { runScheduled } from './cron';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -24,6 +28,34 @@ app.post('/e', async (c) => {
 
 app.options('/e', async (c) => {
   return handleCollector(c.req.raw, c.env);
+});
+
+app.post('/a', async (c) => {
+  return handleAttribution(c.req.raw, c.env);
+});
+
+app.options('/a', async (c) => {
+  return handleAttribution(c.req.raw, c.env);
+});
+
+app.post('/t', async (c) => {
+  return handleVisitToken(c.req.raw, c.env);
+});
+
+app.options('/t', async (c) => {
+  return handleVisitToken(c.req.raw, c.env);
+});
+
+app.post('/c/forget', async (c) => {
+  return handleForget(c.req.raw, c.env);
+});
+
+app.options('/c/forget', async (c) => {
+  return handleForget(c.req.raw, c.env);
+});
+
+app.post('/api/v1/server/events', async (c) => {
+  return handleServerEvent(c.req.raw, c.env);
 });
 
 // Auth endpoints
@@ -50,7 +82,6 @@ app.get('/config', async (c) => {
   return c.json({
     claimed: claimed?.v === '1',
     auth_providers: config.authProviders,
-    firebase_web_config: config.firebaseWebConfig || null,
   });
 });
 
