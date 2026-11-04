@@ -92,6 +92,34 @@ export async function siteSummary(env: Env, site: Site, range: Range) {
       pv: delta(current?.pv || 0, previous?.pv || 0),
       revenue: delta((goals?.value_x100 || 0) / 100, (previousGoals?.value_x100 || 0) / 100),
     },
+    sessions: site.sessions_enabled ? await sessionSummary(env, site.sid, range) : null,
+  };
+}
+
+async function sessionSummary(env: Env, sid: number, range: Range) {
+  const row = await env.CORE.prepare(`
+    SELECT COALESCE(SUM(sessions), 0) AS sessions,
+           COALESCE(SUM(pv), 0) AS pv,
+           COALESCE(SUM(bounces), 0) AS bounces,
+           COALESCE(SUM(dur_s_sum), 0) AS dur_s_sum,
+           COALESCE(SUM(dur_n), 0) AS dur_n
+    FROM sessions_daily
+    WHERE sid = ? AND dim = 'total' AND day >= ? AND day <= ?
+  `).bind(sid, range.from, range.to).first<{
+    sessions: number;
+    pv: number;
+    bounces: number;
+    dur_s_sum: number;
+    dur_n: number;
+  }>();
+  const sessions = row?.sessions || 0;
+  const durN = row?.dur_n || 0;
+  return {
+    approximate: true,
+    sessions,
+    pages_per_visit: sessions ? Math.round(((row?.pv || 0) / sessions) * 10) / 10 : 0,
+    bounce_rate: sessions ? Math.round(((row?.bounces || 0) / sessions) * 1000) / 1000 : 0,
+    avg_duration_s: durN ? Math.round((row?.dur_s_sum || 0) / durN) : null,
   };
 }
 
@@ -358,7 +386,8 @@ export async function budget(env: Env, nowSec = Math.floor(Date.now() / 1000)) {
   const pv = usage?.pv || 0;
   const events = usage?.ev || 0;
   return {
-    writes_estimate: Math.round(pv * 1.625 + events + 5000),
+    // Estimate from real traffic only (no fake floor). ~1.625 D1 writes per pv from ingest model.
+    writes_estimate: Math.round(pv * 1.625 + events),
     write_cap: 100000,
     requests_estimate: pv + events,
     request_cap: 100000,

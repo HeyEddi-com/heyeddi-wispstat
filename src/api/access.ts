@@ -41,6 +41,7 @@ export function mapSite(row: Site): Site {
     ingest_paused: Boolean(row.ingest_paused),
     digest_enabled: Boolean(row.digest_enabled),
     sessions_enabled: Boolean(row.sessions_enabled),
+    upgrade_direct: Boolean(row.upgrade_direct),
     consent_mode: Boolean(row.consent_mode),
   };
 }
@@ -81,9 +82,10 @@ async function authenticateKey(request: Request, env: Env, presented: string): P
   });
   if (!row) return null;
 
+  // Empty allow-list = any origin (key is the secret). Non-empty = browser Origin must match.
   const origins = JSON.parse(row.allowed_origins || '[]') as string[];
   const origin = request.headers.get('origin');
-  if (origin && !origins.includes(origin)) return null;
+  if (origins.length > 0 && origin && !origins.includes(origin)) return null;
 
   const today = new Date().toISOString().slice(0, 10);
   await env.CORE.prepare(
@@ -114,10 +116,6 @@ export function assertCsrf(request: Request, principal: Principal): Response | n
 export function assertOwner(principal: Principal): Response | null {
   if (principal.kind !== 'user' || principal.role !== 'owner') {
     return errorResponse('forbidden', 'Owner required', 403);
-  }
-  if (principal.userId.startsWith('fb:')) {
-    const age = Math.floor(Date.now() / 1000) - principal.authTime;
-    if (age > 300) return errorResponse('reauth_required', 'Sign in again to change settings', 403);
   }
   return null;
 }

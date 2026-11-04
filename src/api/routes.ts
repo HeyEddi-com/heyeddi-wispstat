@@ -34,6 +34,9 @@ import {
   toCsv,
   type Range,
 } from './queries';
+import { hostMatchesAnyDomain, resolveSiteDomain } from '../lib/domains';
+import { listVisits, parseVisitFilters, visitTimeline } from './visits';
+import { heatmapForDay, parseHeatQuery } from './heatmap';
 
 type App = Hono<{ Bindings: Env }>;
 
@@ -78,7 +81,7 @@ function validTz(tz: string): boolean {
 
 function hostOf(value: string): string | null {
   try {
-    return new URL(value).hostname.replace(/^www\./, '');
+    return new URL(value).hostname.toLowerCase();
   } catch {
     return null;
   }
@@ -130,6 +133,9 @@ export function registerApi(app: App): void {
         honor_dnt: site.honor_dnt,
         ingest_paused: site.ingest_paused,
         digest_enabled: site.digest_enabled,
+        sessions_enabled: site.sessions_enabled,
+        upgrade_direct: site.upgrade_direct,
+        consent_mode: site.consent_mode,
       })),
     });
   });
@@ -160,10 +166,12 @@ export function registerApi(app: App): void {
     if (opened instanceof Response) return opened;
     const denied = assertOwner(opened.principal);
     if (denied) return denied;
-    const body = await c.req.json<{ name?: string; slug?: string; domains?: string[]; tz?: string; currency?: string }>();
+    const body = await c.req.json<{ name?: string; slug?: string; domain?: string; domains?: string[]; tz?: string; currency?: string }>();
     if (!body.name || body.name.length > 80) return errorResponse('invalid_name', 'Name is required', 400);
-    const domains = (body.domains || []).map((domain) => domain.trim().toLowerCase()).filter(Boolean);
-    if (domains.length === 0) return errorResponse('invalid_domains', 'At least one domain is required', 400);
+    const domain = resolveSiteDomain(body);
+    if (!domain) {
+      return errorResponse('invalid_domain', 'Enter one valid domain (e.g. example.com or app.example.com)', 400);
+    }
     if (body.slug && !/^[a-z0-9-]{2,40}$/.test(body.slug)) return errorResponse('invalid_slug', 'Invalid slug', 400);
     const tz = body.tz || getConfig(c.env).defaultTz;
     if (!validTz(tz)) return errorResponse('invalid_tz', 'Unknown timezone', 400);
@@ -172,9 +180,9 @@ export function registerApi(app: App): void {
     const siteId = generateSiteId();
     const now = Math.floor(Date.now() / 1000);
     await c.env.CORE.prepare(`
-      INSERT INTO sites (site_id, slug, name, domains, tz, currency, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(siteId, body.slug || null, body.name, JSON.stringify(domains), tz, currency, now).run();
+      INSERT INTO sites (site_id, slug, name, domains, tz, currency, sessions_enabled, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    `).bind(siteId, body.slug || null, body.name, JSON.stringify([domain]), tz, currency, now).run();
     const origin = new URL(c.req.url).origin;
     return json(c.req.raw, opened.principal, {
       site_id: siteId,
@@ -196,23 +204,78 @@ export function registerApi(app: App): void {
     if (!validTz(tz)) return errorResponse('invalid_tz', 'Unknown timezone', 400);
     const currency = typeof body.currency === 'string' ? body.currency.toUpperCase() : site.currency;
     if (!/^[A-Z]{3}$/.test(currency)) return errorResponse('invalid_currency', 'Invalid currency', 400);
-    const domains = Array.isArray(body.domains)
-      ? (body.domains as string[]).map((domain) => domain.trim().toLowerCase()).filter(Boolean)
-      : JSON.parse(site.domains || '[]');
-    if (domains.length === 0) return errorResponse('invalid_domains', 'At least one domain is required', 400);
-    const flag = (key: 'honor_dnt' | 'ingest_paused' | 'digest_enabled', current: boolean) =>
-      typeof body[key] === 'boolean' ? (body[key] ? 1 : 0) : (current ? 1 : 0);
+    let domains = JSON.parse(site.domains || '[]') as string[];
+    if (typeof body.domain === 'string' || Array.isArray(body.domains)) {
+      const domain = resolveSiteDomain({
+        domain: body.domain,
+        domains: body.domains,
+      });
+      if (!domain) {
+        return errorResponse('invalid_domain', 'Enter one valid domain (e.g. example.com or app.example.com)', 400);
+      }
+      domains = [domain];
+    }
+    if (domains.length === 0) return errorResponse('invalid_domain', 'Domain is required', 400);
+    const flag = (
+      key: 'honor_dnt' | 'ingest_paused' | 'sessions_enabled' | 'upgrade_direct' | 'consent_mode',
+      current: boolean
+    ) => typeof body[key] === 'boolean' ? (body[key] ? 1 : 0) : (current ? 1 : 0);
     await c.env.CORE.prepare(`
       UPDATE sites SET name = ?, slug = ?, domains = ?, tz = ?, currency = ?,
-        honor_dnt = ?, ingest_paused = ?, digest_enabled = ?
+        honor_dnt = ?, ingest_paused = ?, sessions_enabled = ?, upgrade_direct = ?, consent_mode = ?
       WHERE sid = ?
     `).bind(
       name, slug, JSON.stringify(domains), tz, currency,
       flag('honor_dnt', site.honor_dnt),
       flag('ingest_paused', site.ingest_paused),
-      flag('digest_enabled', site.digest_enabled),
+      flag('sessions_enabled', site.sessions_enabled),
+      flag('upgrade_direct', site.upgrade_direct),
+      flag('consent_mode', site.consent_mode),
       site.sid
     ).run();
+    return json(c.req.raw, opened.principal, { updated: true });
+  });
+
+  app.get('/api/v1/sites/:site/props', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    const rows = await c.env.CORE.prepare(
+      'SELECT slot, key, allowed_json FROM prop_defs WHERE sid = ? ORDER BY slot'
+    ).bind(opened.site.sid).all<{ slot: number; key: string; allowed_json: string }>();
+    return json(c.req.raw, opened.principal, {
+      data: rows.results.map((row) => ({
+        slot: row.slot,
+        key: row.key,
+        allowed: JSON.parse(row.allowed_json) as string[],
+      })),
+    });
+  });
+
+  app.put('/api/v1/sites/:site/props', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    const denied = assertOwner(opened.principal);
+    if (denied) return denied;
+    const body = await c.req.json<{ defs?: Array<{ key: string; allowed: string[] }> }>();
+    const defs = body.defs || [];
+    if (defs.length > 3) return errorResponse('too_many_props', 'At most 3 property keys', 400);
+    const keyRe = /^[a-z0-9_-]{1,24}$/;
+    for (const def of defs) {
+      if (!keyRe.test(def.key)) return errorResponse('invalid_prop_key', 'Invalid property key', 400);
+      if (!Array.isArray(def.allowed) || def.allowed.length === 0 || def.allowed.length > 20) {
+        return errorResponse('invalid_prop_values', 'Each key needs 1–20 allowed values', 400);
+      }
+      if (!def.allowed.every((v) => keyRe.test(v))) {
+        return errorResponse('invalid_prop_values', 'Invalid allowed value', 400);
+      }
+    }
+    await c.env.CORE.prepare('DELETE FROM prop_defs WHERE sid = ?').bind(opened.site.sid).run();
+    for (let i = 0; i < defs.length; i += 1) {
+      const def = defs[i]!;
+      await c.env.CORE.prepare(
+        'INSERT INTO prop_defs (sid, slot, key, allowed_json) VALUES (?, ?, ?, ?)'
+      ).bind(opened.site.sid, i + 1, def.key, JSON.stringify(def.allowed)).run();
+    }
     return json(c.req.raw, opened.principal, { updated: true });
   });
 
@@ -338,7 +401,6 @@ export function registerApi(app: App): void {
   app.get('/api/v1/sites/:site/live', async (c) => {
     const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
     if (opened instanceof Response) return opened;
-    if (opened.principal.kind === 'key') return errorResponse('forbidden', 'Live view requires a user session', 403);
     const data = await live(c.env, opened.site);
     const today = new Date().toISOString().slice(0, 10);
     return json(c.req.raw, opened.principal, envelope(opened.site, { from: today, to: today }, data, null, 15), 200, 15);
@@ -455,8 +517,8 @@ export function registerApi(app: App): void {
     if (!body.base_url) return errorResponse('invalid_url', 'Base URL is required', 400);
     const host = hostOf(body.base_url);
     const domains = JSON.parse(opened.site.domains || '[]') as string[];
-    if (!host || !domains.some((domain) => host === domain || host === `www.${domain}`)) {
-      return errorResponse('invalid_url', 'Base URL must use one of the site domains', 400);
+    if (!host || !hostMatchesAnyDomain(host, domains)) {
+      return errorResponse('invalid_url', 'Base URL must use the site domain or a subdomain', 400);
     }
     const url = new URL(body.base_url);
     const fields = [
@@ -491,14 +553,36 @@ export function registerApi(app: App): void {
     return json(c.req.raw, opened.principal, { deleted: true });
   });
 
-  app.patch('/api/v1/sites/:site/digest', async (c) => {
+  app.get('/api/v1/sites/:site/heatmap', async (c) => {
     const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
     if (opened instanceof Response) return opened;
-    const denied = assertOwner(opened.principal);
-    if (denied) return denied;
-    const body = await c.req.json<{ enabled?: boolean }>();
-    await c.env.CORE.prepare('UPDATE sites SET digest_enabled = ? WHERE sid = ?')
-      .bind(body.enabled ? 1 : 0, opened.site.sid).run();
-    return json(c.req.raw, opened.principal, { digest_enabled: !!body.enabled });
+    const query = parseHeatQuery(new URL(c.req.url), opened.site);
+    if (query instanceof Response) return query;
+    const body = await heatmapForDay(c.env, opened.site, query.day, query.path);
+    return json(c.req.raw, opened.principal, body, 200, 30);
+  });
+
+  app.get('/api/v1/sites/:site/visits', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    const filters = parseVisitFilters(new URL(c.req.url), opened.site);
+    if (filters instanceof Response) return filters;
+    return json(c.req.raw, opened.principal, await listVisits(c.env, opened.site, filters), 200, 15);
+  });
+
+  app.get('/api/v1/sites/:site/visits/:vh', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    const day = new URL(c.req.url).searchParams.get('day') || '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return errorResponse('invalid_day', 'day must be YYYY-MM-DD', 400);
+    }
+    const sessionRaw = new URL(c.req.url).searchParams.get('session');
+    const sessionIndex = sessionRaw == null || sessionRaw === '' ? 0 : Number(sessionRaw);
+    if (!Number.isFinite(sessionIndex) || sessionIndex < 0) {
+      return errorResponse('invalid_session', 'session must be >= 0', 400);
+    }
+    const body = await visitTimeline(c.env, opened.site, day, c.req.param('vh'), sessionIndex);
+    return json(c.req.raw, opened.principal, body, 200, 15);
   });
 }
