@@ -25,12 +25,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { api } from './lib/api';
 import { authed, claimed, loadConfig, refreshAuth, setAuthed } from './lib/session';
 
 const route = useRoute();
-const router = useRouter();
 const isEmbed = computed(() => route.path.startsWith('/embed'));
 
 onMounted(async () => {
@@ -39,9 +38,14 @@ onMounted(async () => {
 });
 
 async function logout() {
-  await api('/auth/logout', { method: 'POST' });
+  try {
+    await api('/auth/logout', { method: 'POST' });
+  } catch {
+    // Still clear client state and bounce even if the network call fails.
+  }
   setAuthed(false);
-  router.push('/login');
+  // Full navigation so the cleared Set-Cookie is applied and SPA state is wiped.
+  window.location.assign('/login');
 }
 </script>
 

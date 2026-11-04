@@ -4,8 +4,8 @@
 
 import type { Env, Site } from '../lib/types';
 import { authenticate } from '../auth/providers';
-import { BRANDING } from '../../branding.config';
 import { errorResponse, isValidSiteId, sha256, timingSafeEqual } from '../lib/utils';
+import { sessionCookieName } from '../auth/cookies';
 
 export interface UserPrincipal {
   kind: 'user';
@@ -139,5 +139,5 @@ export async function loadSite(env: Env, principal: Principal, siteRef: string):
 }
 
 export function cookieName(): string {
-  return BRANDING.COOKIE_PREFIX + 'session';
+  return sessionCookieName();
 }

@@ -3,7 +3,8 @@
  */
 
 import type { Env, AuthContext } from '../lib/types';
-import { BRANDING } from '../../branding.config';
+import { sha256 } from '../lib/utils';
+import { parseCookies, sessionCookieName } from './cookies';
 
 export interface AuthProvider {
   id: string;
@@ -14,9 +15,8 @@ export class LocalAuthProvider implements AuthProvider {
   id = 'local';
 
   async authenticate(req: Request, env: Env): Promise<AuthContext | null> {
-    const cookieName = BRANDING.COOKIE_PREFIX + 'session';
     const cookies = parseCookies(req.headers.get('cookie') || '');
-    const token = cookies[cookieName];
+    const token = cookies[sessionCookieName()];
 
     if (!token) return null;
 
@@ -42,23 +42,6 @@ export class LocalAuthProvider implements AuthProvider {
       role: user.role,
     };
   }
-}
-
-async function sha256(data: string): Promise<Uint8Array> {
-  const buf = new TextEncoder().encode(data);
-  const hash = await crypto.subtle.digest('SHA-256', buf);
-  return new Uint8Array(hash);
-}
-
-function parseCookies(cookieHeader: string): Record<string, string> {
-  const cookies: Record<string, string> = {};
-  for (const cookie of cookieHeader.split(';')) {
-    const [key, ...rest] = cookie.split('=');
-    if (key && rest.length > 0) {
-      cookies[key.trim()] = rest.join('=').trim();
-    }
-  }
-  return cookies;
 }
 
 export function getAuthProvider(id: string): AuthProvider {

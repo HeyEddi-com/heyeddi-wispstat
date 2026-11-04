@@ -11,7 +11,12 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('content-type')) headers.set('content-type', 'application/json');
   if (init.method && init.method !== 'GET' && init.method !== 'HEAD') headers.set('x-ws-csrf', '1');
-  const response = await fetch(path, { ...init, headers });
+  const response = await fetch(path, {
+    ...init,
+    headers,
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
   if (response.status === 204) return undefined as T;
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {

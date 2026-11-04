@@ -17,7 +17,9 @@ import Settings from './views/site/Settings.vue';
 import Visits from './views/site/Visits.vue';
 import Heatmaps from './views/site/Heatmaps.vue';
 import Embed from './views/Embed.vue';
-import { loadConfig } from './lib/session';
+import { authReady, authed, loadConfig, refreshAuth } from './lib/session';
+
+const publicWhenClaimed = new Set(['/login', '/docs']);
 
 const router = createRouter({
   history: createWebHistory(),
@@ -52,6 +54,13 @@ router.beforeEach(async (to) => {
   const config = await loadConfig().catch(() => ({ claimed: false, auth_providers: ['local'] }));
   if (!config.claimed && to.path !== '/claim') return '/claim';
   if (config.claimed && to.path === '/claim') return '/';
+  if (!config.claimed) return true;
+
+  if (!authReady.value) await refreshAuth();
+
+  const isPublic = publicWhenClaimed.has(to.path);
+  if (!authed.value && !isPublic) return '/login';
+  if (authed.value && to.path === '/login') return '/';
   return true;
 });
 

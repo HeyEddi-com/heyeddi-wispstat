@@ -40,13 +40,16 @@ import { heatmapForDay, parseHeatQuery } from './heatmap';
 
 type App = Hono<{ Bindings: Env }>;
 
-function json(request: Request, principal: Principal, body: unknown, status = 200, ttl?: number): Response {
-  const headers: Record<string, string> = { Vary: 'Origin' };
+function json(request: Request, principal: Principal, body: unknown, status = 200, _ttl?: number): Response {
+  // Never cache authenticated JSON — browser private max-age made logout look like a no-op on refresh.
+  const headers: Record<string, string> = {
+    Vary: 'Origin, Cookie, Authorization, X-WS-Key',
+    'Cache-Control': 'private, no-store',
+  };
   const origin = request.headers.get('origin');
   if (origin && (principal.kind === 'key' || origin === new URL(request.url).origin)) {
     headers['Access-Control-Allow-Origin'] = origin;
   }
-  if (ttl) headers['Cache-Control'] = `private, max-age=${ttl}`;
   return Response.json(body, { status, headers });
 }
 
