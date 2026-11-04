@@ -4,7 +4,7 @@
  */
 
 import type { Env, BeaconPayload, Site, Goal } from '../lib/types';
-import { getConfig } from '../../wispstat.config';
+import { CONSTANTS, getConfig } from '../../wispstat.config';
 import {
   isValidSiteId,
   normalizePath,
@@ -19,7 +19,11 @@ import {
 import { getSalt } from '../lib/salt';
 import { computeVisitorHash, parseUserAgent, isBot } from '../lib/visitor';
 import { computeChannel } from '../lib/channels';
+import { hostMatchesAnyDomain } from '../lib/domains';
 import { ensurePartition } from '../lib/partitions';
+import { withinLimits } from '../lib/ratelimit';
+import { loadPropDefs, mapProps } from '../lib/props';
+import { hashCid, isValidCid } from '../lib/consent';
 
 // Isolate caches
 const siteCache = new Map<string, { site: Site; expires: number }>();
@@ -78,12 +82,12 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
     return new Response(null, { status: 204, headers: corsHeaders(request) });
   }
   
-  // 4. Origin check
+  // 4. Origin check — measurement root + subdomains
   const origin = request.headers.get('origin') || request.headers.get('referer') || '';
   const originHost = extractHost(origin);
   const domainList = JSON.parse(site.domains) as string[];
-  
-  if (!originHost || !domainList.some(d => originHost === d || originHost === `www.${d}`)) {
+
+  if (!originHost || !hostMatchesAnyDomain(originHost, domainList)) {
     return new Response(null, { status: 204, headers: corsHeaders(request) });
   }
   
@@ -100,14 +104,15 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
     return new Response(null, { status: 204, headers: corsHeaders(request) });
   }
   
-  // 7. Rate limit (placeholder - actual Rate Limiting binding would go here)
-  // For now, we'll skip this and add it when the binding is configured
-  
-  // 8. Compute visitor attributes
   const ip = request.headers.get('cf-connecting-ip') || '';
+  const now = Math.floor(Date.now() / 1000);
+  if (!withinLimits(site.site_id, ip, now, config.limits.rateLimit)) {
+    return rateLimited(request);
+  }
+
+  // 8. Compute visitor attributes
   const country = (request.cf?.country as string | undefined) || '';
   
-  const now = Math.floor(Date.now() / 1000);
   const localDate = getLocalDate(now, site.tz);
   const partitionSuffix = getPartitionSuffix(localDate);
   
@@ -158,20 +163,27 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
       
       // Batch write
       const vhHex = Array.from(vh).map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      await env.INGEST.batch([
+      const upgrade = site.upgrade_direct
+        && attribution.channel !== CONSTANTS.CHANNEL_DIRECT
+        && attribution.channel !== CONSTANTS.CHANNEL_OWN_SITES;
+
+      const defs = payload.k === 'ev' ? await loadPropDefs(env.CORE, site.sid) : [];
+      const mapped = mapProps(defs, payload.props);
+
+      const writes = [
         // Event row
         env.INGEST.prepare(`
-          INSERT INTO ${evTable} (sid, ts, k, name, path, vh, nv, goal_id, value_x100, src)
+          INSERT INTO ${evTable} (sid, ts, k, name, path, vh, nv, goal_id, value_x100, src, p1, p2, p3)
           VALUES (?, ?, ?, ?, ?, x'${vhHex}', 
             (SELECT NOT EXISTS (SELECT 1 FROM ${visTable} WHERE sid = ? AND vh = x'${vhHex}')),
-            ?, ?, 0)
+            ?, ?, 0, ?, ?, ?)
         `).bind(
           site.sid, now,
           payload.k === 'pv' ? 0 : 1,
           eventName, path,
           site.sid,
-          goalId, valueX100
+          goalId, valueX100,
+          mapped.p1, mapped.p2, mapped.p3
         ),
         
         // Visitor row (only if not exists)
@@ -187,7 +199,45 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
           uaInfo.device, uaInfo.browser, uaInfo.os,
           site.sid
         ),
-      ]);
+      ];
+
+      if (upgrade) {
+        writes.push(env.INGEST.prepare(`
+          UPDATE ${visTable}
+          SET channel = ?, source = ?, medium = ?, campaign = ?, content = ?, term = ?, ref_host = ?
+          WHERE sid = ? AND vh = x'${vhHex}' AND channel = ?
+        `).bind(
+          attribution.channel, attribution.source, attribution.medium,
+          attribution.campaign, attribution.content, attribution.term,
+          attribution.ref_host,
+          site.sid, CONSTANTS.CHANNEL_DIRECT
+        ));
+      }
+
+      await env.INGEST.batch(writes);
+
+      if (site.consent_mode && isValidCid(payload.cid)) {
+        const pepper = config.sessionSecret || config.setupToken;
+        const cidHash = await hashCid(pepper, site.sid, payload.cid);
+        const cidHex = Array.from(cidHash).map((b) => b.toString(16).padStart(2, '0')).join('');
+        await env.CORE.prepare(`
+          INSERT INTO consented_visitors (
+            sid, cid_hash, first_day, first_channel, first_source, first_medium, first_campaign, last_day, active_days
+          ) VALUES (?, x'${cidHex}', ?, ?, ?, ?, ?, ?, 1)
+          ON CONFLICT(sid, cid_hash) DO UPDATE SET
+            last_day = excluded.last_day,
+            active_days = consented_visitors.active_days +
+              CASE WHEN consented_visitors.last_day = excluded.last_day THEN 0 ELSE 1 END
+        `).bind(
+          site.sid,
+          localDate,
+          attribution.channel,
+          attribution.source,
+          attribution.medium,
+          attribution.campaign,
+          localDate,
+        ).run();
+      }
       
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -214,7 +264,7 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
   return response;
 }
 
-function corsHeaders(request: Request): Record<string, string> {
+export function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('origin') || '*';
   return {
     'Access-Control-Allow-Origin': origin,
@@ -225,13 +275,24 @@ function corsHeaders(request: Request): Record<string, string> {
 
 function extractHost(url: string): string {
   try {
-    return new URL(url).hostname.replace(/^www\./, '');
+    return new URL(url).hostname.toLowerCase();
   } catch {
     return '';
   }
 }
 
-async function getSiteCached(env: Env, siteId: string): Promise<Site | null> {
+export function rateLimited(request: Request): Response {
+  return new Response(JSON.stringify({ error: { code: 'rate_limited', message: 'Slow down' } }), {
+    status: 429,
+    headers: {
+      ...corsHeaders(request),
+      'content-type': 'application/json',
+      'retry-after': '60',
+    },
+  });
+}
+
+export async function getSiteCached(env: Env, siteId: string): Promise<Site | null> {
   const cached = siteCache.get(siteId);
   if (cached && cached.expires > Date.now()) {
     return cached.site;
@@ -249,6 +310,7 @@ async function getSiteCached(env: Env, siteId: string): Promise<Site | null> {
     ingest_paused: Boolean(result.ingest_paused),
     digest_enabled: Boolean(result.digest_enabled),
     sessions_enabled: Boolean(result.sessions_enabled),
+    upgrade_direct: Boolean(result.upgrade_direct),
     consent_mode: Boolean(result.consent_mode),
   };
   
