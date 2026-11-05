@@ -3,6 +3,7 @@ import coreSql from '../migrations/core/0001_initial_schema.sql?raw';
 import sessionsSql from '../migrations/core/0002_sessions.sql?raw';
 import propsConsentSql from '../migrations/core/0003_props_consent.sql?raw';
 import heatmapSql from '../migrations/core/0004_heatmap.sql?raw';
+import productSql from '../migrations/core/0005_product_complete.sql?raw';
 import ingestSql from '../migrations/ingest/0001_initial_schema.sql?raw';
 
 let ready = false;
@@ -32,6 +33,7 @@ export async function applySchema(): Promise<void> {
   await runSql(env.CORE, sessionsSql);
   await runSql(env.CORE, propsConsentSql);
   await runSql(env.CORE, heatmapSql);
+  await runSql(env.CORE, productSql);
   await runSql(env.INGEST, ingestSql);
   ready = true;
 }

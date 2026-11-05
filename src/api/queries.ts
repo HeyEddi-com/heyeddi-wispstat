@@ -3,6 +3,8 @@
  */
 
 import type { Env, Site } from '../lib/types';
+import { convertMinor } from '../lib/money';
+import { fxTable } from './insights';
 import { daysInclusive, isDay, previousRange, shiftDate } from '../lib/dates';
 import { getLocalDate } from '../lib/utils';
 import { errorResponse } from '../lib/utils';
@@ -74,23 +76,30 @@ export async function siteSummary(env: Env, site: Site, range: Range) {
   const prev = previousRange(range.from, range.to);
   const previous = await totals(env, site.sid, prev);
   const previousGoals = await goalTotals(env, site.sid, prev);
+  const revenue = (goals?.value_x100 || 0) / 100;
+  const previousRevenue = (previousGoals?.value_x100 || 0) / 100;
+  const rates = await fxTable(env);
+  const reportCurrency = (site.reporting_currency || site.currency || 'USD').toUpperCase();
+  const reportingRevenue = convertMinor(Math.round(revenue * 100), site.currency || 'USD', reportCurrency, rates) / 100;
   return {
     visitors: current?.visitors || 0,
     pv: current?.pv || 0,
     events: current?.events || 0,
     conversions: goals?.conversions || 0,
-    revenue: (goals?.value_x100 || 0) / 100,
+    revenue,
+    reporting_currency: reportCurrency,
+    reporting_revenue: reportingRevenue,
     previous: {
       visitors: previous?.visitors || 0,
       pv: previous?.pv || 0,
       events: previous?.events || 0,
       conversions: previousGoals?.conversions || 0,
-      revenue: (previousGoals?.value_x100 || 0) / 100,
+      revenue: previousRevenue,
     },
     delta: {
       visitors: delta(current?.visitors || 0, previous?.visitors || 0),
       pv: delta(current?.pv || 0, previous?.pv || 0),
-      revenue: delta((goals?.value_x100 || 0) / 100, (previousGoals?.value_x100 || 0) / 100),
+      revenue: delta(revenue, previousRevenue),
     },
     sessions: site.sessions_enabled ? await sessionSummary(env, site.sid, range) : null,
   };
