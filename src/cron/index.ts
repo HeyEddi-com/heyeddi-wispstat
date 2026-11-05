@@ -1,11 +1,11 @@
 /**
- * Scheduled jobs: hourly rollups, optional nightly CORE export.
- * Weekly Slack digest removed — use the Wispstat MCP instead.
+ * Scheduled jobs: hourly rollups, nightly CORE export, weekly Slack digest.
  */
 
 import type { Env } from '../lib/types';
 import { getConfig } from '../../wispstat.config';
 import { listSites, runHourly } from './rollup';
+import { runWeeklyDigest } from './digest';
 
 async function putState(env: Env, job: string, scope: string, value: string): Promise<void> {
   await env.CORE.prepare(
@@ -88,6 +88,9 @@ export async function runScheduled(cron: string, env: Env): Promise<void> {
   if (cron === config.schedules.nightly) {
     await runNightly(env);
     return;
+  }
+  if (cron === '0 15 * * 1') {
+    await runWeeklyDigest(env, env.SLACK_WEBHOOK_URL);
   }
   console.log('Unhandled cron:', cron);
 }

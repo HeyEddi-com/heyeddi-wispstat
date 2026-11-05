@@ -6,7 +6,7 @@
 export interface Config {
   publicBaseUrl?: string;
   defaultTz: string;
-  authProviders: ['local'];
+  authProviders: string[];
 
   setupToken: string;
   sessionSecret?: string;
@@ -54,7 +54,11 @@ export function getConfig(env: any): Config {
   return {
     publicBaseUrl: env.PUBLIC_BASE_URL,
     defaultTz: env.DEFAULT_TZ || 'UTC',
-    authProviders: ['local'],
+    authProviders: [
+      'local',
+      ...(env.FIREBASE_PROJECT_ID ? ['firebase'] : []),
+      ...(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD ? ['access'] : []),
+    ],
 
     setupToken: env.SETUP_TOKEN,
     sessionSecret: env.SESSION_SECRET,

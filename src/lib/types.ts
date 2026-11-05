@@ -21,6 +21,10 @@ export interface Env {
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
   D1_CORE_DATABASE_ID?: string;
+  SLACK_WEBHOOK_URL?: string;
+  FIREBASE_PROJECT_ID?: string;
+  ACCESS_TEAM_DOMAIN?: string;
+  ACCESS_AUD?: string;
 }
 
 export interface Site {
@@ -37,6 +41,7 @@ export interface Site {
   sessions_enabled: boolean;
   upgrade_direct: boolean;
   consent_mode: boolean;
+  reporting_currency?: string;
   created_at: number;
 }
 

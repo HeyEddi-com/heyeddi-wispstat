@@ -21,7 +21,7 @@ import { computeVisitorHash, parseUserAgent, isBot } from '../lib/visitor';
 import { computeChannel } from '../lib/channels';
 import { hostMatchesAnyDomain } from '../lib/domains';
 import { ensurePartition } from '../lib/partitions';
-import { withinLimits } from '../lib/ratelimit';
+import { enforceLimits } from '../lib/ratelimit';
 import { loadPropDefs, mapProps } from '../lib/props';
 import { hashCid, isValidCid } from '../lib/consent';
 
@@ -106,7 +106,7 @@ export async function handleCollector(request: Request, env: Env): Promise<Respo
   
   const ip = request.headers.get('cf-connecting-ip') || '';
   const now = Math.floor(Date.now() / 1000);
-  if (!withinLimits(site.site_id, ip, now, config.limits.rateLimit)) {
+  if (!(await enforceLimits(env, site.site_id, ip, now, config.limits.rateLimit))) {
     return rateLimited(request);
   }
 

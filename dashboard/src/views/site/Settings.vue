@@ -15,6 +15,8 @@
         </select>
       </label>
       <label>Currency <input v-model="site.currency" maxlength="3" /></label>
+      <label>Reporting currency <input v-model="site.reporting_currency" maxlength="3" /></label>
+      <label><input v-model="site.digest_enabled" type="checkbox" /> Weekly Slack digest (set secret SLACK_WEBHOOK_URL)</label>
       <label>
         Domain
         <input v-model="domainText" placeholder="example.com" required pattern="^[A-Za-z0-9.-]+$" />
@@ -89,6 +91,8 @@ interface SiteRow {
   name: string;
   tz: string;
   currency: string;
+  reporting_currency: string;
+  digest_enabled: boolean;
   domains: string[];
   honor_dnt: boolean;
   ingest_paused: boolean;
@@ -145,6 +149,8 @@ async function save() {
         slug: site.value.slug || null,
         tz: site.value.tz,
         currency: site.value.currency,
+        reporting_currency: site.value.reporting_currency,
+        digest_enabled: site.value.digest_enabled,
         domain: domainText.value.trim(),
         honor_dnt: site.value.honor_dnt,
         ingest_paused: site.value.ingest_paused,
