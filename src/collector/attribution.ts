@@ -7,7 +7,7 @@ import { getConfig } from '../../wispstat.config';
 import { isValidSiteId, getLocalDate, getPartitionSuffix } from '../lib/utils';
 import { getSalt } from '../lib/salt';
 import { computeVisitorHash, isBot } from '../lib/visitor';
-import { withinLimits } from '../lib/ratelimit';
+import { enforceLimits } from '../lib/ratelimit';
 import { partitionTables } from '../lib/partitions';
 import { corsHeaders, getSiteCached, rateLimited } from './index';
 
@@ -99,7 +99,7 @@ export async function handleAttribution(request: Request, env: Env): Promise<Res
 
   const ip = request.headers.get('cf-connecting-ip') || '';
   const now = Math.floor(Date.now() / 1000);
-  if (!withinLimits(site.site_id, ip, now, config.limits.rateLimit)) {
+  if (!(await enforceLimits(env, site.site_id, ip, now, config.limits.rateLimit))) {
     return rateLimited(request);
   }
 

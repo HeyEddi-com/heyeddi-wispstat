@@ -3,6 +3,7 @@
  * this Map is the stand-in until that binding is configured.
  */
 
+import type { Env } from './types';
 import { coarseIpHash } from './utils';
 
 const buckets = new Map<string, { start: number; count: number }>();
@@ -28,4 +29,23 @@ export function withinLimits(siteId: string, ip: string, nowSec: number, limits:
   const siteOk = allowRequest(`site:${siteId}`, limits.perSiteLimit, limits.perSitePeriod, nowSec);
   const ipOk = allowRequest(`ip:${siteId}:${coarseIpHash(ip || '0')}`, limits.perIpLimit, limits.perIpPeriod, nowSec);
   return siteOk && ipOk;
+}
+
+async function bump(kv: KVNamespace, key: string, limit: number, periodSec: number): Promise<boolean> {
+  const current = Number(await kv.get(key) || '0') + 1;
+  await kv.put(key, String(current), { expirationTtl: Math.max(60, periodSec) });
+  return current <= limit;
+}
+
+/** Shared counter in KV so the limit holds across isolates. Falls back to the in-memory damper. */
+export async function enforceLimits(env: Env, siteId: string, ip: string, nowSec: number, limits: LimitConfig): Promise<boolean> {
+  try {
+    const siteWindow = Math.floor(nowSec / limits.perSitePeriod);
+    const ipWindow = Math.floor(nowSec / limits.perIpPeriod);
+    const siteOk = await bump(env.SALTS, `rl:s:${siteId}:${siteWindow}`, limits.perSiteLimit, limits.perSitePeriod);
+    const ipOk = await bump(env.SALTS, `rl:i:${siteId}:${coarseIpHash(ip || '0')}:${ipWindow}`, limits.perIpLimit, limits.perIpPeriod);
+    return siteOk && ipOk;
+  } catch {
+    return withinLimits(siteId, ip, nowSec, limits);
+  }
 }

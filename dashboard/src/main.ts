@@ -10,6 +10,8 @@ import Summary from './views/site/Summary.vue';
 import Live from './views/site/Live.vue';
 import Sources from './views/site/Sources.vue';
 import Goals from './views/site/Goals.vue';
+import Funnels from './views/site/Funnels.vue';
+import Retention from './views/site/Retention.vue';
 import Breakdown from './views/site/Breakdown.vue';
 import Utm from './views/site/Utm.vue';
 import Export from './views/site/Export.vue';
@@ -40,6 +42,8 @@ const router = createRouter({
         { path: 'heatmaps', component: Heatmaps },
         { path: 'sources', component: Sources },
         { path: 'goals', component: Goals },
+        { path: 'funnels', component: Funnels },
+        { path: 'retention', component: Retention },
         { path: 'breakdown/:dim', component: Breakdown },
         { path: 'utm', component: Utm },
         { path: 'export', component: Export },

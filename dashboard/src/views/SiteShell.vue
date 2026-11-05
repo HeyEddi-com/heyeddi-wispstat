@@ -8,6 +8,8 @@
       <router-link :to="link('heatmaps')">Heatmaps</router-link>
       <router-link :to="link('sources')">Sources</router-link>
       <router-link :to="link('goals')">Goals</router-link>
+      <router-link :to="link('funnels')">Funnels</router-link>
+      <router-link :to="link('retention')">Retention</router-link>
       <router-link :to="link('breakdown/path')">Pages</router-link>
       <router-link :to="link('breakdown/event')">Events</router-link>
       <router-link :to="link('breakdown/lang')">Languages</router-link>

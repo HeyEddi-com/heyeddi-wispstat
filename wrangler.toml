@@ -21,15 +21,14 @@ migrations_dir = "migrations/ingest"
 binding = "SALTS"
 id = "e36de2e66f764c8d981604027560a0e5"
 
-# Optional nightly CORE backups — enable after: npx wrangler r2 bucket create wispstat-backups
+# Nightly CORE export. The account must enable R2 in the dashboard first, then:
+#   npx wrangler r2 bucket create wispstat-backups
+# and uncomment the binding. Until then runNightly records skipped:unconfigured.
 # [[r2_buckets]]
 # binding = "BACKUPS"
 # bucket_name = "wispstat-backups"
 
-# Rate limiting (placeholder - actual binding configured via dashboard/CLI)
-# [[unsafe.bindings]]
-# name = "RATE_LIMITER"
-# type = "ratelimit"
+# Per-site and per-IP caps are enforced in KV (binding SALTS, keys rl:*).
 
 # Static assets (dashboard + tracker)
 [assets]
@@ -39,11 +38,11 @@ not_found_handling = "single-page-application"
 # This Wrangler only accepts a boolean. The Worker passes other paths to ASSETS.
 run_worker_first = true
 
-# Cron triggers (hourly, nightly). Weekly Slack digest removed — use MCP.
 [triggers]
 crons = [
   "5 * * * *",     # hourly: rollups + partition management
-  "0 9 * * *",     # nightly: CORE backup to R2 (UTC; configurable)
+  "0 9 * * *",     # nightly: CORE backup to R2 (UTC)
+  "0 15 * * 1",    # Monday 15:00 UTC: Slack digest for sites with digest_enabled
 ]
 
 # Workers Logs on for errors/debug; avoid shipping visitor payloads in custom logs.
@@ -67,3 +66,6 @@ DEFAULT_TZ = "UTC"
 # TOKEN_KEY - for visit token encryption (v1.2)
 # CF_API_TOKEN - optional, for R2 backups
 # CF_ACCOUNT_ID - optional, for R2 backups
+# SLACK_WEBHOOK_URL - optional weekly digest
+# FIREBASE_PROJECT_ID - optional; invite the email first
+# ACCESS_TEAM_DOMAIN + ACCESS_AUD - optional Cloudflare Access

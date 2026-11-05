@@ -7,7 +7,7 @@ import { getConfig } from '../../wispstat.config';
 import { isValidSiteId, getLocalDate } from '../lib/utils';
 import { getSalt } from '../lib/salt';
 import { computeVisitorHash, isBot } from '../lib/visitor';
-import { withinLimits } from '../lib/ratelimit';
+import { enforceLimits } from '../lib/ratelimit';
 import { mintVisitToken, visitTokenExpiry } from '../lib/visit-token';
 import { corsHeaders, getSiteCached, rateLimited } from './index';
 import { hostMatchesAnyDomain } from '../lib/domains';
@@ -92,7 +92,7 @@ export async function handleVisitToken(request: Request, env: Env): Promise<Resp
 
   const ip = request.headers.get('cf-connecting-ip') || '';
   const now = Math.floor(Date.now() / 1000);
-  if (!withinLimits(site.site_id, ip, now, config.limits.rateLimit)) {
+  if (!(await enforceLimits(env, site.site_id, ip, now, config.limits.rateLimit))) {
     return rateLimited(request);
   }
 

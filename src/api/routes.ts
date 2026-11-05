@@ -37,6 +37,7 @@ import {
 import { hostMatchesAnyDomain, resolveSiteDomain } from '../lib/domains';
 import { listVisits, parseVisitFilters, visitTimeline } from './visits';
 import { heatmapForDay, parseHeatQuery } from './heatmap';
+import { deleteFunnel, funnelReport, fxTable, listFunnels, retentionReport, saveFunnel } from './insights';
 
 type App = Hono<{ Bindings: Env }>;
 
@@ -136,6 +137,7 @@ export function registerApi(app: App): void {
         honor_dnt: site.honor_dnt,
         ingest_paused: site.ingest_paused,
         digest_enabled: site.digest_enabled,
+        reporting_currency: site.reporting_currency || site.currency,
         sessions_enabled: site.sessions_enabled,
         upgrade_direct: site.upgrade_direct,
         consent_mode: site.consent_mode,
@@ -220,17 +222,22 @@ export function registerApi(app: App): void {
     }
     if (domains.length === 0) return errorResponse('invalid_domain', 'Domain is required', 400);
     const flag = (
-      key: 'honor_dnt' | 'ingest_paused' | 'sessions_enabled' | 'upgrade_direct' | 'consent_mode',
+      key: 'honor_dnt' | 'ingest_paused' | 'digest_enabled' | 'sessions_enabled' | 'upgrade_direct' | 'consent_mode',
       current: boolean
     ) => typeof body[key] === 'boolean' ? (body[key] ? 1 : 0) : (current ? 1 : 0);
+    const reporting = typeof body.reporting_currency === 'string'
+      ? body.reporting_currency.toUpperCase()
+      : (site.reporting_currency || currency);
+    if (!/^[A-Z]{3}$/.test(reporting)) return errorResponse('invalid_currency', 'Invalid reporting currency', 400);
     await c.env.CORE.prepare(`
-      UPDATE sites SET name = ?, slug = ?, domains = ?, tz = ?, currency = ?,
-        honor_dnt = ?, ingest_paused = ?, sessions_enabled = ?, upgrade_direct = ?, consent_mode = ?
+      UPDATE sites SET name = ?, slug = ?, domains = ?, tz = ?, currency = ?, reporting_currency = ?,
+        honor_dnt = ?, ingest_paused = ?, digest_enabled = ?, sessions_enabled = ?, upgrade_direct = ?, consent_mode = ?
       WHERE sid = ?
     `).bind(
-      name, slug, JSON.stringify(domains), tz, currency,
+      name, slug, JSON.stringify(domains), tz, currency, reporting,
       flag('honor_dnt', site.honor_dnt),
       flag('ingest_paused', site.ingest_paused),
+      flag('digest_enabled', site.digest_enabled),
       flag('sessions_enabled', site.sessions_enabled),
       flag('upgrade_direct', site.upgrade_direct),
       flag('consent_mode', site.consent_mode),
@@ -587,5 +594,71 @@ export function registerApi(app: App): void {
     }
     const body = await visitTimeline(c.env, opened.site, day, c.req.param('vh'), sessionIndex);
     return json(c.req.raw, opened.principal, body, 200, 15);
+  });
+
+  app.get('/api/v1/sites/:site/funnels', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    const range = rangeFor(c.req.raw, opened.site);
+    if (range instanceof Response) return range;
+    const funnels = await listFunnels(c.env, opened.site);
+    const data = [];
+    for (const funnel of funnels) {
+      data.push({
+        ...funnel,
+        ...(await funnelReport(c.env, opened.site, funnel.steps, range.from, range.to)),
+      });
+    }
+    return json(c.req.raw, opened.principal, { data });
+  });
+
+  app.post('/api/v1/sites/:site/funnels', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    const denied = assertOwner(opened.principal);
+    if (denied) return denied;
+    const body = await c.req.json<{ name?: string; steps?: string[] }>();
+    const steps = (body.steps || []).map((step) => step.trim()).filter(Boolean).slice(0, 8);
+    if (!body.name || steps.length < 2) return errorResponse('invalid_funnel', 'Name and at least two steps are required', 400);
+    const funnelId = await saveFunnel(c.env, opened.site, body.name.slice(0, 80), steps);
+    return json(c.req.raw, opened.principal, { funnel_id: funnelId }, 201);
+  });
+
+  app.delete('/api/v1/sites/:site/funnels/:id', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    const denied = assertOwner(opened.principal);
+    if (denied) return denied;
+    await deleteFunnel(c.env, opened.site, Number(c.req.param('id')));
+    return json(c.req.raw, opened.principal, { deleted: true });
+  });
+
+  app.get('/api/v1/sites/:site/retention', async (c) => {
+    const opened = await openSite(c.req.raw, c.env, c.req.param('site'));
+    if (opened instanceof Response) return opened;
+    return json(c.req.raw, opened.principal, await retentionReport(c.env, opened.site));
+  });
+
+  app.get('/api/v1/fx', async (c) => {
+    const opened = await open(c.req.raw, c.env);
+    if (opened instanceof Response) return opened;
+    return json(c.req.raw, opened.principal, { data: await fxTable(c.env) });
+  });
+
+  app.put('/api/v1/fx', async (c) => {
+    const opened = await open(c.req.raw, c.env);
+    if (opened instanceof Response) return opened;
+    const denied = assertOwner(opened.principal);
+    if (denied) return denied;
+    const body = await c.req.json<{ code?: string; usd_per_unit?: number }>();
+    const code = (body.code || '').toUpperCase();
+    if (!/^[A-Z]{3}$/.test(code) || !body.usd_per_unit || body.usd_per_unit <= 0) {
+      return errorResponse('invalid_fx', 'Need a 3-letter code and a positive USD rate', 400);
+    }
+    await c.env.CORE.prepare(`
+      INSERT INTO fx_rates (code, usd_per_unit, updated_at) VALUES (?, ?, ?)
+      ON CONFLICT(code) DO UPDATE SET usd_per_unit = excluded.usd_per_unit, updated_at = excluded.updated_at
+    `).bind(code, body.usd_per_unit, Math.floor(Date.now() / 1000)).run();
+    return json(c.req.raw, opened.principal, { saved: true });
   });
 }
