@@ -21,7 +21,7 @@ Privacy-first, cookie-free web analytics running entirely on Cloudflare (Workers
 
 1. Click the Deploy button:
    ```
-   https://deploy.workers.cloudflare.com/?url=https://github.com/YOUR-ORG/heyeddi-wispstat
+   https://deploy.workers.cloudflare.com/?url=https://github.com/HeyEddi-com/heyeddi-wispstat
    ```
 
 2. Cloudflare will:
@@ -275,11 +275,9 @@ Full policy (how to report securely + self-host hardening): [`SECURITY.md`](SECU
 
 ## License
 
-MIT License - see LICENSE file.
+MIT License - see [LICENSE](LICENSE).
 
-Inspired by hayaran/Edgemetry (MIT), though this is a from-scratch implementation with no upstream code copied.
-
-## Credits
+## Acknowledgements
 
 - Spec & implementation: Eddi Sanchez (HeyEddi)
-- Inspired by: hayaran/Edgemetry (MIT)
+- Inspired by [hayaran/Edgemetry](https://github.com/hayaran/Edgemetry) (MIT). WispStat is a from-scratch implementation with no upstream code copied.
